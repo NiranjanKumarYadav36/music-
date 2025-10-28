@@ -60,40 +60,58 @@ export default function MusicGeneratorUI() {
   }, [currentAudio]);
 
   // Event Handlers
-  const generateMusic = async () => {
+  const generateMusic = async (usePostProcessing: boolean = false) => {
     if (!generationParams.prompt) return;
-    
+
     setIsLoading(true);
     setAudioUrl(null);
-    setShowPostProcessing(false);
+    if (!usePostProcessing) {
+      setShowPostProcessing(false);
+    }
 
     // Stop currently playing audio
     if (currentAudio) {
       currentAudio.pause();
       setIsPlaying(false);
+      setCurrentAudio(null);
     }
 
     try {
+      const requestBody: any = {
+        prompt: generationParams.prompt,
+        duration: generationParams.duration,
+        temperature: generationParams.temperature,
+        cfg_coef: generationParams.cfgCoef,
+        top_k: generationParams.topK,
+        top_p: generationParams.topP,
+        use_sampling: generationParams.useSampling,
+      };
+
+      // Include post-processing parameters if applying
+      if (usePostProcessing) {
+        requestBody.post_processing = {
+          reverb: postProcessingParams.reverb,
+          bass_boost: postProcessingParams.bassBoost,
+          treble: postProcessingParams.treble,
+          speed: postProcessingParams.speed,
+        };
+      }
+
       const response = await fetch("https://8000-01k3nz9wgydsgcb03rkyh82qdx.cloudspaces.litng.ai/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: generationParams.prompt,
-          duration: generationParams.duration,
-          temperature: generationParams.temperature,
-          cfg_coef: generationParams.cfgCoef,
-          top_k: generationParams.topK,
-          top_p: generationParams.topP,
-          use_sampling: generationParams.useSampling,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) throw new Error("API call failed");
 
-      const result = await response.json();
-      const newAudioUrl = result.audio_url || "/api/placeholder/audio/new";
+      // Get the audio blob from response
+      const audioBlob = await response.blob();
+
+      // Create object URL for the audio blob
+      const newAudioUrl = URL.createObjectURL(audioBlob);
       setAudioUrl(newAudioUrl);
-      
+
       // Add to history
       const newMusic: MusicTrack = {
         id: Date.now(),
@@ -104,17 +122,18 @@ export default function MusicGeneratorUI() {
       };
       setMusicHistory(prev => [newMusic, ...prev]);
       setSelectedMusic(newMusic);
-      
-      // Show post-processing sidebar
-      setTimeout(() => setShowPostProcessing(true), 500);
-      
+
+      // post-processing sidebar
+      if (!usePostProcessing) {
+        setTimeout(() => setShowPostProcessing(true), 500);
+      }
     } catch (err) {
       console.error("Error generating music:", err);
       alert("Something went wrong while generating music.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
   const handlePlayPause = () => {
     if (!audioUrl) return;
@@ -138,7 +157,7 @@ export default function MusicGeneratorUI() {
 
   const handleDownload = () => {
     if (!audioUrl) return;
-    
+
     const link = document.createElement('a');
     link.href = audioUrl;
     link.download = `generated-music-${Date.now()}.mp3`;
@@ -148,13 +167,15 @@ export default function MusicGeneratorUI() {
   };
 
   const applyPostProcessing = async () => {
-    if (!audioUrl) return;
-    
+    if (!generationParams.prompt) {
+      alert("Please generate music first before applying post-processing.");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // Simulate post-processing API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      alert("Post-processing applied successfully!");
+      // Regenerate music with post-processing parameters
+      await generateMusic(true);
     } catch (err) {
       console.error("Error in post-processing:", err);
       alert("Failed to apply post-processing.");
@@ -167,7 +188,7 @@ export default function MusicGeneratorUI() {
     setSelectedMusic(music);
     setAudioUrl(music.audioUrl);
     setShowHistory(false);
-    
+
     // Stop current audio
     if (currentAudio) {
       currentAudio.pause();
@@ -238,12 +259,12 @@ export default function MusicGeneratorUI() {
               <CardFooter className="flex flex-col gap-4 pt-6">
                 <Button
                   disabled={isLoading || !generationParams.prompt}
-                  onClick={generateMusic}
+                  onClick={() => generateMusic()}
                   className="w-full text-lg py-6 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" /> 
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       Generating Music...
                     </>
                   ) : (
