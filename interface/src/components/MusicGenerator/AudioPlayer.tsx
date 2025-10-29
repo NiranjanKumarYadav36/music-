@@ -37,7 +37,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
             {currentTrack?.prompt || "Generated Music"}
           </p>
           <p className="text-xs text-zinc-400">
-            {currentTrack?.duration || 0} seconds • {currentTrack?.date || "Just now"}
+            {currentTrack?.duration || "0s"} • {currentTrack?.date || "Just now"}
           </p>
         </div>
         <Button

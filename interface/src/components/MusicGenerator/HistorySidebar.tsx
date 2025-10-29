@@ -75,7 +75,7 @@ const HistoryItem: React.FC<{
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{music.prompt}</p>
         <p className="text-xs text-zinc-400 mt-1">
-          {music.duration}s • {music.date}
+          {music.duration} • {music.date} 
         </p>
       </div>
       <Button
