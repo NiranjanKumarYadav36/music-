@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "../ui/button"
 import { Card, CardHeader, CardContent, CardFooter } from "../ui/card";
 import { Loader2, Music, History, Sparkles, Settings } from "lucide-react"; // Settings added
@@ -15,7 +15,7 @@ import type { MusicTrack, GenerationParameters, PostProcessingParameters } from 
 // --- Configuration ---
 const HISTORY_STORAGE_KEY = 'musicGenerationHistory';
 // Ensure this URL is correct and the server is running
-const MUSIC_GEN_API_URL = "https://8000-01k3nz9wgydsgcb03rkyh82qdx.cloudspaces.litng.ai/predict"; 
+const MUSIC_GEN_API_URL = "https://8001-01k3t9ggdeegcaqcpmfwpc5a3k.cloudspaces.litng.ai/predict"; 
 
 // --- Base64 Audio Helpers ---
 
@@ -61,7 +61,7 @@ const initialPostProcessingParams: PostProcessingParameters = {
   treble: 0,
   speed: 1.0,
   temperature: 1.0, 
-  cfgCoef: 3.0,     
+  cfgCoef: 8.0,     
   topK: 250,        
   topP: 0.0,
   useSampling: true,
@@ -151,7 +151,7 @@ export default function MusicGeneratorUI() {
   // Event Handlers
   const generateMusic = async (isRefining: boolean = false) => {
     if (!generationParams.prompt) return;
-
+  
     setIsLoading(true);
     if (!isRefining) {
         setAudioUrl(null);
@@ -163,67 +163,65 @@ export default function MusicGeneratorUI() {
       setIsPlaying(false);
       setCurrentAudio(null);
     }
-
+  
     try {
-      // 💡 Consolidate all parameters for the API call
+      // Choose the right endpoint
+      const apiUrl = isRefining 
+        ? "https://8001-01k3t9ggdeegcaqcpmfwpc5a3k.cloudspaces.litng.ai/postprocess"
+        : "https://8001-01k3t9ggdeegcaqcpmfwpc5a3k.cloudspaces.litng.ai/generate";
+  
       const requestBody: any = {
         prompt: generationParams.prompt,
         duration: generationParams.duration,
-        
-        advanced_params: {
+      };
+  
+      // Only include advanced params for postprocess endpoint
+      if (isRefining) {
+        requestBody.advanced_params = {
             temperature: postProcessingParams.temperature,
             cfg_coef: postProcessingParams.cfgCoef,
             top_k: postProcessingParams.topK,
             top_p: postProcessingParams.topP,
             use_sampling: postProcessingParams.useSampling,
-            reverb: postProcessingParams.reverb,
-            bass_boost: postProcessingParams.bassBoost,
-            treble: postProcessingParams.treble,
-            speed: postProcessingParams.speed,
-        }
-      };
+            // Remove these as they're not supported by MusicGen backend:
+            // reverb: postProcessingParams.reverb,
+            // bass_boost: postProcessingParams.bassBoost, 
+            // treble: postProcessingParams.treble,
+            // speed: postProcessingParams.speed,
+        };
+      }
       
-      const response = await fetch(MUSIC_GEN_API_URL, {
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
-
+  
       if (!response.ok) throw new Error("API call failed with status: " + response.status);
-
-      // Get the audio blob from response (Python API returns audio/wav)
+  
+      // Rest of your code remains the same...
       const audioBlob = await response.blob();
-      
-      // 💡 Convert Blob to Base64 for persistence
       const base64Audio = await blobToBase64(audioBlob);
-
-      // Create object URL for the audio blob (transient, for immediate playback)
       const newAudioUrl = URL.createObjectURL(audioBlob);
       setAudioUrl(newAudioUrl);
-
-      // Add to history
+  
       const newMusic: MusicTrack = {
         id: Date.now(),
         prompt: generationParams.prompt,
-        // Convert number duration to string for display/history
         duration: `${generationParams.duration}s`, 
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-        audioUrl: newAudioUrl, // Temporary URL for immediate state
-        base64Audio: base64Audio // Persistent data for local storage
+        audioUrl: newAudioUrl,
+        base64Audio: base64Audio
       };
       
-      // Update history and selection
       if (isRefining && selectedMusic) {
-          // Replace the old track with the new refined track
           setMusicHistory(prev => prev.map(m => m.id === selectedMusic.id ? newMusic : m));
       } else {
-          // Add the new track to the top
           setMusicHistory(prev => [newMusic, ...prev]);
       }
       
       setSelectedMusic(newMusic);
-
-      // Show post-processing sidebar on first successful generation
+  
       if (!isRefining) {
         setTimeout(() => setShowPostProcessing(true), 500);
       }

@@ -3,7 +3,7 @@ export interface MusicTrack {
   prompt: string;
   duration: string;
   date: string;
-  audioUrl: string;
+  audioUrl: string | null;
   base64Audio?: string;
 }
 
