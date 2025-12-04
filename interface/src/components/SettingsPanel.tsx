@@ -93,10 +93,11 @@ export function SettingsPanel({
               variant="ghost"
               size="sm"
               onClick={() => {
+                // Reset all advanced generation settings to their new defaults
                 onTemperatureChange(1);
-                onCfgCoefChange(3);
+                onCfgCoefChange(8);
                 onTopKChange(250);
-                onTopPChange(0);
+                onTopPChange(0.7);
               }}
               className={cn(
                 "text-xs mb-2",
@@ -112,8 +113,11 @@ export function SettingsPanel({
                 <Label className={cn("text-xs text-gray-400 dark:text-gray-400 text-gray-600")}>Temperature</Label>
                 <Input
                   type="number"
-                  value={temperature}
-                  onChange={(e) => onTemperatureChange(parseFloat(e.target.value))}
+                  value={isNaN(temperature) ? '' : temperature}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    if (!isNaN(val)) onTemperatureChange(val);
+                  }}
                   min={0.1}
                   max={2.0}
                   step={0.1}
@@ -131,8 +135,11 @@ export function SettingsPanel({
                 <Label className={cn("text-xs text-gray-400 dark:text-gray-400 text-gray-600")}>CFG Coefficient</Label>
                 <Input
                   type="number"
-                  value={cfgCoef}
-                  onChange={(e) => onCfgCoefChange(parseFloat(e.target.value))}
+                  value={isNaN(cfgCoef) ? '' : cfgCoef}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    if (!isNaN(val)) onCfgCoefChange(val);
+                  }}
                   min={1.0}
                   max={10.0}
                   step={0.1}
@@ -150,8 +157,11 @@ export function SettingsPanel({
                 <Label className={cn("text-xs text-gray-400 dark:text-gray-400 text-gray-600")}>Top-K</Label>
                 <Input
                   type="number"
-                  value={topK}
-                  onChange={(e) => onTopKChange(parseInt(e.target.value))}
+                  value={isNaN(topK) ? '' : topK}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    if (!isNaN(val)) onTopKChange(val);
+                  }}
                   min={1}
                   max={500}
                   className={cn(
@@ -168,8 +178,11 @@ export function SettingsPanel({
                 <Label className={cn("text-xs text-gray-400 dark:text-gray-400 text-gray-600")}>Top-P</Label>
                 <Input
                   type="number"
-                  value={topP}
-                  onChange={(e) => onTopPChange(parseFloat(e.target.value))}
+                  value={isNaN(topP) ? '' : topP}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    if (!isNaN(val)) onTopPChange(val);
+                  }}
                   min={0}
                   max={1.0}
                   step={0.1}

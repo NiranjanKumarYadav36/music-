@@ -8,6 +8,7 @@ import { HistorySidebar } from './HistorySidebar';
 import { PostProcessingSidebar } from './PostProcessingSidebar';
 import { AudioPlayer } from './AudioPlayer';
 import { GenerationForm } from './GenerationForm';
+import { GenerationModal } from './GenerationModal';
 
 // Types (Assumes MusicTrack now has base64Audio?: string; field)
 import type { MusicTrack, GenerationParameters, PostProcessingParameters } from '../MusicGenerator/types';
@@ -15,7 +16,7 @@ import type { MusicTrack, GenerationParameters, PostProcessingParameters } from 
 // --- Configuration ---
 const HISTORY_STORAGE_KEY = 'musicGenerationHistory';
 // Ensure this URL is correct and the server is running
-const MUSIC_GEN_API_URL = "https://8001-01k3t9ggdeegcaqcpmfwpc5a3k.cloudspaces.litng.ai/predict"; 
+// const MUSIC_GEN_API_URL = "https://8001-01k3t9ggdeegcaqcpmfwpc5a3k.cloudspaces.litng.ai/predict"; 
 
 // --- Base64 Audio Helpers ---
 
@@ -77,6 +78,8 @@ export default function MusicGeneratorUI() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showPostProcessing, setShowPostProcessing] = useState(false);
+  const [showGenerationModal, setShowGenerationModal] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
   
   const [selectedMusic, setSelectedMusic] = useState<MusicTrack | null>(null);
 
@@ -152,7 +155,12 @@ export default function MusicGeneratorUI() {
   const generateMusic = async (isRefining: boolean = false) => {
     if (!generationParams.prompt) return;
   
+    // Show modal immediately - before any async operations
+    console.log('Opening generation modal...');
+    setShowGenerationModal(true);
+    setGenerationProgress(0);
     setIsLoading(true);
+    
     if (!isRefining) {
         setAudioUrl(null);
         setShowPostProcessing(false);
@@ -163,18 +171,29 @@ export default function MusicGeneratorUI() {
       setIsPlaying(false);
       setCurrentAudio(null);
     }
-  
+
+    // Simulate progress updates
+    const progressInterval = setInterval(() => {
+      setGenerationProgress((prev) => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90; // Don't go to 100% until API call completes
+        }
+        return prev + Math.random() * 15; // Increment by 0-15%
+      });
+    }, 500);
+
     try {
       // Choose the right endpoint
       const apiUrl = isRefining 
         ? "https://8001-01k3t9ggdeegcaqcpmfwpc5a3k.cloudspaces.litng.ai/postprocess"
         : "https://8001-01k3t9ggdeegcaqcpmfwpc5a3k.cloudspaces.litng.ai/generate";
-  
+
       const requestBody: any = {
         prompt: generationParams.prompt,
         duration: generationParams.duration,
       };
-  
+
       // Only include advanced params for postprocess endpoint
       if (isRefining) {
         requestBody.advanced_params = {
@@ -196,15 +215,19 @@ export default function MusicGeneratorUI() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
-  
+
       if (!response.ok) throw new Error("API call failed with status: " + response.status);
-  
+
+      // Complete progress to 100%
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
+
       // Rest of your code remains the same...
       const audioBlob = await response.blob();
       const base64Audio = await blobToBase64(audioBlob);
       const newAudioUrl = URL.createObjectURL(audioBlob);
       setAudioUrl(newAudioUrl);
-  
+
       const newMusic: MusicTrack = {
         id: Date.now(),
         prompt: generationParams.prompt,
@@ -221,13 +244,25 @@ export default function MusicGeneratorUI() {
       }
       
       setSelectedMusic(newMusic);
-  
+
       if (!isRefining) {
         setTimeout(() => setShowPostProcessing(true), 500);
       }
       
+      // Close modal after a brief delay to show 100% completion
+      setTimeout(() => {
+        setShowGenerationModal(false);
+        setGenerationProgress(0);
+      }, 800);
+      
     } catch (err) {
       console.error("Error generating music:", err);
+      clearInterval(progressInterval);
+      // Close modal on error
+      setTimeout(() => {
+        setShowGenerationModal(false);
+        setGenerationProgress(0);
+      }, 500);
     } finally {
       setIsLoading(false);
     }
@@ -423,6 +458,19 @@ export default function MusicGeneratorUI() {
         onParametersChange={setPostProcessingParams}
         onApply={applyPostProcessing}
         isLoading={isLoading}
+      />
+
+      {/* Generation Modal */}
+      <GenerationModal
+        isOpen={showGenerationModal}
+        progress={generationProgress}
+        onClose={() => {
+          // Only allow manual close if not actively loading
+          if (!isLoading) {
+            setShowGenerationModal(false);
+            setGenerationProgress(0);
+          }
+        }}
       />
     </div>
   );

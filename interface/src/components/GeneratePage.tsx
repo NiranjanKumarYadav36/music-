@@ -6,6 +6,7 @@ import { MusicPlayer } from "./MusicPlayer";
 import { SettingsPanel } from "./SettingsPanel";
 import { cn } from "@/lib/utils";
 import type { MusicTrack } from "./MusicGenerator/types";
+import { EditSettingsModal } from "./EditSettingsModal";
 
 interface GeneratePageProps {
   prompt: string;
@@ -157,25 +158,27 @@ export function GeneratePage({
         </div>
         )}
 
-        {/* Generate Button - Only show when no music */}
-        {!currentMusic && (
-          <Button
-            onClick={onGenerate}
-            disabled={isLoading || !prompt.trim()}
-            className={cn(
-              "w-full h-14 text-lg font-semibold rounded-xl text-white",
-              "bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500",
-              "hover:from-purple-600 hover:via-pink-600 hover:to-cyan-600",
-              "disabled:opacity-50 disabled:cursor-not-allowed",
-              "transition-all duration-200 shadow-lg shadow-purple-500/30",
-              "flex items-center justify-center",
-              "animate-in fade-in slide-in-from-bottom-4"
-            )}
-          >
-            <Wand2 className="w-5 h-5 mr-2" />
-            {isLoading ? "Generating..." : "Generate Music"}
-          </Button>
-        )}
+        {/* Generate Button - Always visible so users can generate again */}
+        <Button
+          onClick={onGenerate}
+          disabled={isLoading || !prompt.trim()}
+          className={cn(
+            "w-full h-14 text-lg font-semibold rounded-xl text-white",
+            "bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500",
+            "hover:from-purple-600 hover:via-pink-600 hover:to-cyan-600",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+            "transition-all duration-200 shadow-lg shadow-purple-500/30",
+            "flex items-center justify-center",
+            "animate-in fade-in slide-in-from-bottom-4"
+          )}
+        >
+          <Wand2 className="w-5 h-5 mr-2" />
+          {isLoading
+            ? "Generating..."
+            : currentMusic
+            ? "Generate New Music"
+            : "Generate Music"}
+        </Button>
 
         {/* Music Player - Shows when music is generated */}
         {currentMusic && (
@@ -213,37 +216,32 @@ export function GeneratePage({
         )}
       </div>
 
-      {/* Sidebar - Settings Panel - Only show when edit is clicked */}
-      {showEditPanel && currentMusic && (
-        <div className={cn(
-          "w-80 flex flex-col gap-4 overflow-y-auto shrink-0 min-h-0",
-          "transition-all duration-300 ease-in-out animate-in slide-in-from-right fade-in"
-        )}>
-          <SettingsPanel
-            temperature={temperature}
-            onTemperatureChange={onTemperatureChange}
-            cfgCoef={cfgCoef}
-            onCfgCoefChange={onCfgCoefChange}
-            topK={topK}
-            onTopKChange={onTopKChange}
-            topP={topP}
-            onTopPChange={onTopPChange}
-            useSampling={useSampling}
-            onUseSamplingChange={onUseSamplingChange}
-            reverb={reverb}
-            onReverbChange={onReverbChange}
-            bassBoost={bassBoost}
-            onBassBoostChange={onBassBoostChange}
-            treble={treble}
-            onTrebleChange={onTrebleChange}
-            speed={speed}
-            onSpeedChange={onSpeedChange}
-            onResetEffects={onResetEffects}
-            onApplyEdit={onApplyEdit}
-            isLoading={isLoading}
-          />
-        </div>
-      )}
+      {/* Edit Settings Modal - Glassmorphic popup */}
+      <EditSettingsModal
+        isOpen={!!currentMusic && showEditPanel}
+        onClose={onEditClick}
+        temperature={temperature}
+        onTemperatureChange={onTemperatureChange}
+        cfgCoef={cfgCoef}
+        onCfgCoefChange={onCfgCoefChange}
+        topK={topK}
+        onTopKChange={onTopKChange}
+        topP={topP}
+        onTopPChange={onTopPChange}
+        useSampling={useSampling}
+        onUseSamplingChange={onUseSamplingChange}
+        reverb={reverb}
+        onReverbChange={onReverbChange}
+        bassBoost={bassBoost}
+        onBassBoostChange={onBassBoostChange}
+        treble={treble}
+        onTrebleChange={onTrebleChange}
+        speed={speed}
+        onSpeedChange={onSpeedChange}
+        onResetEffects={onResetEffects}
+        onApplyEdit={onApplyEdit}
+        isLoading={isLoading}
+      />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Navigation } from "./components/Navigation";
 import { GeneratePage } from "./components/GeneratePage";
 import { HistoryPage } from "./components/HistoryPage";
+import { GenerationModal } from "./components/MusicGenerator/GenerationModal";
 import { cn } from "./lib/utils";
 import type { MusicTrack, GenerationParameters, PostProcessingParameters } from "./components/MusicGenerator/types";
 
@@ -45,10 +46,11 @@ const initialPostProcessingParams: PostProcessingParameters = {
   bassBoost: 0,
   treble: 0,
   speed: 1.0,
+  // Advanced defaults for the Edit / Post-processing section
   temperature: 1.0,
-  cfgCoef: 3.0,
+  cfgCoef: 8.0,
   topK: 250,
-  topP: 0.0,
+  topP: 0.7,
   useSampling: true,
 };
 
@@ -65,6 +67,8 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentMusic, setCurrentMusic] = useState<MusicTrack | null>(null);
   const [showEditPanel, setShowEditPanel] = useState(false);
+  const [showGenerationModal, setShowGenerationModal] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
   const [musicHistory, setMusicHistory] = useState<MusicTrack[]>(() => {
     if (typeof window === "undefined") return [];
     try {
@@ -93,17 +97,67 @@ function App() {
     }
   });
 
-  // Save history to localStorage
+  // Helper function to clean up old history entries when storage is full
+  const cleanupOldHistory = (history: MusicTrack[], maxItems: number = 50): MusicTrack[] => {
+    if (history.length <= maxItems) return history;
+    // Keep the most recent items
+    return history.slice(0, maxItems);
+  };
+
+  // Save history to localStorage with quota management
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && musicHistory.length > 0) {
       try {
         const historyForStorage = musicHistory.map((track) => {
           const { audioUrl, ...trackToStore } = track;
           return trackToStore;
         });
-        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(historyForStorage));
+        
+        // Try to save, if quota exceeded, clean up old entries
+        try {
+          const jsonString = JSON.stringify(historyForStorage);
+          localStorage.setItem(HISTORY_STORAGE_KEY, jsonString);
+        } catch (error: any) {
+          if (error.name === 'QuotaExceededError' || error.code === 22) {
+            // Clean up old entries (keep last 20 items to be safe)
+            let cleanedHistory = cleanupOldHistory(historyForStorage, 20);
+            try {
+              const cleanedJson = JSON.stringify(cleanedHistory);
+              localStorage.setItem(HISTORY_STORAGE_KEY, cleanedJson);
+            } catch (retryError) {
+              // If still failing, try with even fewer items
+              cleanedHistory = cleanupOldHistory(cleanedHistory, 10);
+              try {
+                const minimalJson = JSON.stringify(cleanedHistory);
+                localStorage.setItem(HISTORY_STORAGE_KEY, minimalJson);
+              } catch (finalError) {
+                // Last resort: clear and save only the most recent 5 items
+                const emergencyHistory = cleanupOldHistory(cleanedHistory, 5);
+                localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(emergencyHistory));
+              }
+            }
+            // Only update state if we actually removed items to prevent loops
+            if (cleanedHistory.length < historyForStorage.length) {
+              const restoredHistory = cleanedHistory.map((track) => {
+                if (!track.base64Audio) {
+                  return { ...track, audioUrl: null };
+                }
+                try {
+                  const audioBlob = base64ToBlob(track.base64Audio, "audio/wav");
+                  return { ...track, audioUrl: URL.createObjectURL(audioBlob) };
+                } catch (e) {
+                  return { ...track, audioUrl: null };
+                }
+              });
+              // Use requestAnimationFrame to break the update cycle
+              requestAnimationFrame(() => {
+                setMusicHistory(restoredHistory);
+              });
+            }
+          }
+        }
       } catch (error) {
-        console.error("Could not save history to Local Storage", error);
+        // Silently handle errors to avoid console spam
       }
     }
   }, [musicHistory]);
@@ -111,7 +165,34 @@ function App() {
   const generateMusic = async () => {
     if (!generationParams.prompt.trim()) return;
 
+    // Show modal immediately
+    setShowGenerationModal(true);
+    setGenerationProgress(0);
     setIsLoading(true);
+
+    // Smooth linear progress simulation - gradually increase to 90%
+    const startTime = Date.now();
+    const estimatedDuration = 30000; // 30 seconds estimated
+    const targetProgress = 90; // Stop at 90% until API completes
+    let lastSetProgress = 0;
+    
+    const progressInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      // Linear progression: progress increases smoothly over time
+      const calculatedProgress = Math.min((elapsed / estimatedDuration) * targetProgress, targetProgress);
+      
+      // Only update if progress has meaningfully changed (avoid micro-updates)
+      if (Math.abs(calculatedProgress - lastSetProgress) >= 0.5 || calculatedProgress >= targetProgress) {
+        const newProgress = Math.min(calculatedProgress, targetProgress);
+        lastSetProgress = newProgress;
+        setGenerationProgress(newProgress);
+        
+        if (newProgress >= targetProgress) {
+          clearInterval(progressInterval);
+        }
+      }
+    }, 200); // Update every 200ms - less frequent but still smooth
+
     try {
       const apiUrl = "https://8001-01k3t9ggdeegcaqcpmfwpc5a3k.cloudspaces.litng.ai/generate";
       const requestBody = {
@@ -126,6 +207,10 @@ function App() {
       });
 
       if (!response.ok) throw new Error("API call failed with status: " + response.status);
+
+      // Complete progress to 100%
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
 
       const audioBlob = await response.blob();
       const base64Audio = await blobToBase64(audioBlob);
@@ -148,8 +233,20 @@ function App() {
       setCurrentMusic(newMusic);
       setMusicHistory((prev) => [newMusic, ...prev]);
       setShowEditPanel(false); // Hide settings when new music is generated
+
+      // Close modal after a brief delay to show 100% completion
+      setTimeout(() => {
+        setShowGenerationModal(false);
+        setGenerationProgress(0);
+      }, 800);
     } catch (err) {
       console.error("Error generating music:", err);
+      clearInterval(progressInterval);
+      // Close modal on error
+      setTimeout(() => {
+        setShowGenerationModal(false);
+        setGenerationProgress(0);
+      }, 500);
       alert("Failed to generate music. Please try again.");
     } finally {
       setIsLoading(false);
@@ -176,7 +273,33 @@ function App() {
   const handleEditMusic = async () => {
     if (!currentMusic) return;
     
+    // Show modal for editing too
+    setShowGenerationModal(true);
+    setGenerationProgress(0);
     setIsLoading(true);
+
+    // Smooth linear progress simulation for editing
+    const startTime = Date.now();
+    const estimatedDuration = 30000; // 30 seconds estimated
+    const targetProgress = 90;
+    let lastSetProgress = 0;
+    
+    const progressInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const calculatedProgress = Math.min((elapsed / estimatedDuration) * targetProgress, targetProgress);
+      
+      // Only update if progress has meaningfully changed
+      if (Math.abs(calculatedProgress - lastSetProgress) >= 0.5 || calculatedProgress >= targetProgress) {
+        const newProgress = Math.min(calculatedProgress, targetProgress);
+        lastSetProgress = newProgress;
+        setGenerationProgress(newProgress);
+        
+        if (newProgress >= targetProgress) {
+          clearInterval(progressInterval);
+        }
+      }
+    }, 200);
+
     try {
       // Use postprocess endpoint to refine the music with current settings
       const apiUrl = "https://8001-01k3t9ggdeegcaqcpmfwpc5a3k.cloudspaces.litng.ai/postprocess";
@@ -200,6 +323,10 @@ function App() {
 
       if (!response.ok) throw new Error("API call failed with status: " + response.status);
 
+      // Complete progress to 100%
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
+
       const audioBlob = await response.blob();
       const base64Audio = await blobToBase64(audioBlob);
       const newAudioUrl = URL.createObjectURL(audioBlob);
@@ -221,8 +348,20 @@ function App() {
         prev.map((m) => (m.id === currentMusic.id ? updatedMusic : m))
       );
       setShowEditPanel(false);
+
+      // Close modal after a brief delay
+      setTimeout(() => {
+        setShowGenerationModal(false);
+        setGenerationProgress(0);
+      }, 800);
     } catch (err) {
       console.error("Error editing music:", err);
+      clearInterval(progressInterval);
+      // Close modal on error
+      setTimeout(() => {
+        setShowGenerationModal(false);
+        setGenerationProgress(0);
+      }, 500);
       alert("Failed to edit music. Please try again.");
     } finally {
       setIsLoading(false);
@@ -406,6 +545,19 @@ function App() {
           )}
         </div>
       </div>
+
+      {/* Generation Modal */}
+      <GenerationModal
+        isOpen={showGenerationModal}
+        progress={generationProgress}
+        onClose={() => {
+          // Only allow manual close if not actively loading
+          if (!isLoading) {
+            setShowGenerationModal(false);
+            setGenerationProgress(0);
+          }
+        }}
+      />
     </div>
   );
 }
