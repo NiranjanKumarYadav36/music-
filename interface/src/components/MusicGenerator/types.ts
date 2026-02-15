@@ -5,6 +5,7 @@ export interface MusicTrack {
   date: string;
   audioUrl: string | null;
   base64Audio?: string;
+  advancedSettings?: PostProcessingParameters;
 }
 
 export interface GenerationParameters {

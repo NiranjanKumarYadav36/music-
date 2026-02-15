@@ -22,32 +22,32 @@ const HISTORY_STORAGE_KEY = 'musicGenerationHistory';
 
 /** Converts Blob to Base64 string for localStorage persistence. */
 const blobToBase64 = (blob: Blob): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            if (typeof reader.result === 'string') {
-                // Remove the data URI prefix (e.g., "data:audio/wav;base64,")
-                const base64String = reader.result.split(',')[1];
-                resolve(base64String);
-            } else {
-                reject(new Error("Failed to read blob as string."));
-            }
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-    });
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        // Remove the data URI prefix (e.g., "data:audio/wav;base64,")
+        const base64String = reader.result.split(',')[1];
+        resolve(base64String);
+      } else {
+        reject(new Error("Failed to read blob as string."));
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 };
 
 /** Converts Base64 string back to Blob for recreating the Object URL. */
 const base64ToBlob = (base64: string, mimeType: string): Blob => {
-    // Note: atob can fail if the string is not valid Base64
-    const byteCharacters = atob(base64);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    return new Blob([byteArray], { type: mimeType });
+  // Note: atob can fail if the string is not valid Base64
+  const byteCharacters = atob(base64);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  return new Blob([byteArray], { type: mimeType });
 };
 
 // --- Initial Parameters ---
@@ -61,9 +61,9 @@ const initialPostProcessingParams: PostProcessingParameters = {
   bassBoost: 0,
   treble: 0,
   speed: 1.0,
-  temperature: 1.0, 
-  cfgCoef: 8.0,     
-  topK: 250,        
+  temperature: 1.0,
+  cfgCoef: 8.0,
+  topK: 250,
   topP: 0.0,
   useSampling: true,
 };
@@ -80,35 +80,35 @@ export default function MusicGeneratorUI() {
   const [showPostProcessing, setShowPostProcessing] = useState(false);
   const [showGenerationModal, setShowGenerationModal] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
-  
+
   const [selectedMusic, setSelectedMusic] = useState<MusicTrack | null>(null);
 
   // 1. Initialize musicHistory from Local Storage
   const [musicHistory, setMusicHistory] = useState<MusicTrack[]>(() => {
     if (typeof window === 'undefined') {
-      return []; 
+      return [];
     }
     try {
       const storedHistoryJson = localStorage.getItem(HISTORY_STORAGE_KEY);
       if (!storedHistoryJson) return [];
-      
+
       const storedHistory: MusicTrack[] = JSON.parse(storedHistoryJson);
-      
+
       // 💡 Defensive Loading: Recreate Object URLs and handle potential Base64 errors
       return storedHistory.map(track => {
         if (!track.base64Audio) {
-            // If data is old or corrupted, ensure audioUrl is null to prevent crashes
-            return { ...track, audioUrl: null }; 
+          // If data is old or corrupted, ensure audioUrl is null to prevent crashes
+          return { ...track, audioUrl: null };
         }
-        
+
         try {
-            const audioBlob = base64ToBlob(track.base64Audio, 'audio/wav');
-            // Recreate temporary URL for this session
-            track.audioUrl = URL.createObjectURL(audioBlob); 
+          const audioBlob = base64ToBlob(track.base64Audio, 'audio/wav');
+          // Recreate temporary URL for this session
+          track.audioUrl = URL.createObjectURL(audioBlob);
         } catch (e) {
-            console.error(`Failed to restore audio for track ${track.id}:`, e);
-            // On failure, nullify the audioUrl
-            track.audioUrl = null; 
+          console.error(`Failed to restore audio for track ${track.id}:`, e);
+          // On failure, nullify the audioUrl
+          track.audioUrl = null;
         }
         return track;
       });
@@ -116,9 +116,9 @@ export default function MusicGeneratorUI() {
       console.error("Could not load history from Local Storage. Clearing history.", error);
       // If JSON parsing fails entirely, clear local storage to prevent future crashes
       if (typeof window !== 'undefined') {
-          localStorage.removeItem(HISTORY_STORAGE_KEY);
+        localStorage.removeItem(HISTORY_STORAGE_KEY);
       }
-      return []; 
+      return [];
     }
   });
 
@@ -131,41 +131,41 @@ export default function MusicGeneratorUI() {
       }
     };
   }, [currentAudio]);
-  
+
   // 2. Effect to save musicHistory to Local Storage whenever it changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
         // Prepare data for storage by EXCLUDING the transient audioUrl
         const historyForStorage = musicHistory.map(track => {
-            // Destructure audioUrl but keep base64Audio
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { audioUrl, ...trackToStore } = track; 
-            return trackToStore;
+          // Destructure audioUrl but keep base64Audio
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { audioUrl, ...trackToStore } = track;
+          return trackToStore;
         });
-        
+
         localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(historyForStorage));
       } catch (error) {
         console.error("Could not save history to Local Storage", error);
       }
     }
-  }, [musicHistory]); 
+  }, [musicHistory]);
 
   // Event Handlers
   const generateMusic = async (isRefining: boolean = false) => {
     if (!generationParams.prompt) return;
-  
+
     // Show modal immediately - before any async operations
     console.log('Opening generation modal...');
     setShowGenerationModal(true);
     setGenerationProgress(0);
     setIsLoading(true);
-    
+
     if (!isRefining) {
-        setAudioUrl(null);
-        setShowPostProcessing(false);
+      setAudioUrl(null);
+      setShowPostProcessing(false);
     }
-    
+
     if (currentAudio) {
       currentAudio.pause();
       setIsPlaying(false);
@@ -185,31 +185,24 @@ export default function MusicGeneratorUI() {
 
     try {
       // Choose the right endpoint
-      const apiUrl = isRefining 
-        ? "https://8001-01k3t9ggdeegcaqcpmfwpc5a3k.cloudspaces.litng.ai/postprocess"
-        : "https://8001-01k3t9ggdeegcaqcpmfwpc5a3k.cloudspaces.litng.ai/generate";
+      const apiUrl = isRefining
+        ? "https://8000-01k3t9ggdeegcaqcpmfwpc5a3k.cloudspaces.litng.ai/postprocess"
+        : "https://8000-01k3t9ggdeegcaqcpmfwpc5a3k.cloudspaces.litng.ai/generate";
 
       const requestBody: any = {
         prompt: generationParams.prompt,
         duration: generationParams.duration,
       };
 
-      // Only include advanced params for postprocess endpoint
-      if (isRefining) {
-        requestBody.advanced_params = {
-            temperature: postProcessingParams.temperature,
-            cfg_coef: postProcessingParams.cfgCoef,
-            top_k: postProcessingParams.topK,
-            top_p: postProcessingParams.topP,
-            use_sampling: postProcessingParams.useSampling,
-            // Remove these as they're not supported by MusicGen backend:
-            // reverb: postProcessingParams.reverb,
-            // bass_boost: postProcessingParams.bassBoost, 
-            // treble: postProcessingParams.treble,
-            // speed: postProcessingParams.speed,
-        };
-      }
-      
+      // Always include advanced params to ensure consistency
+      requestBody.advanced_params = {
+        temperature: postProcessingParams.temperature,
+        cfg_coef: postProcessingParams.cfgCoef,
+        top_k: postProcessingParams.topK,
+        top_p: postProcessingParams.topP,
+        use_sampling: postProcessingParams.useSampling,
+      };
+
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -231,30 +224,31 @@ export default function MusicGeneratorUI() {
       const newMusic: MusicTrack = {
         id: Date.now(),
         prompt: generationParams.prompt,
-        duration: `${generationParams.duration}s`, 
+        duration: `${generationParams.duration}s`,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
         audioUrl: newAudioUrl,
-        base64Audio: base64Audio
+        base64Audio: base64Audio,
+        advancedSettings: { ...postProcessingParams }
       };
-      
+
       if (isRefining && selectedMusic) {
-          setMusicHistory(prev => prev.map(m => m.id === selectedMusic.id ? newMusic : m));
+        setMusicHistory(prev => prev.map(m => m.id === selectedMusic.id ? newMusic : m));
       } else {
-          setMusicHistory(prev => [newMusic, ...prev]);
+        setMusicHistory(prev => [newMusic, ...prev]);
       }
-      
+
       setSelectedMusic(newMusic);
 
       if (!isRefining) {
         setTimeout(() => setShowPostProcessing(true), 500);
       }
-      
+
       // Close modal after a brief delay to show 100% completion
       setTimeout(() => {
         setShowGenerationModal(false);
         setGenerationProgress(0);
       }, 800);
-      
+
     } catch (err) {
       console.error("Error generating music:", err);
       clearInterval(progressInterval);
@@ -322,22 +316,35 @@ export default function MusicGeneratorUI() {
     let newAudioUrl = music.audioUrl;
 
     if (!newAudioUrl && music.base64Audio) {
-        try {
-            const audioBlob = base64ToBlob(music.base64Audio, 'audio/wav');
-            newAudioUrl = URL.createObjectURL(audioBlob);
-            
-            // Update the music object in state with the new transient URL for future selections
-            setMusicHistory(prev => prev.map(m => m.id === music.id ? { ...m, audioUrl: newAudioUrl } : m));
-        } catch (e) {
-            console.error("Failed to restore audio from history on selection:", e);
-            newAudioUrl = null;
-        }
+      try {
+        const audioBlob = base64ToBlob(music.base64Audio, 'audio/wav');
+        newAudioUrl = URL.createObjectURL(audioBlob);
+
+        // Update the music object in state with the new transient URL for future selections
+        setMusicHistory(prev => prev.map(m => m.id === music.id ? { ...m, audioUrl: newAudioUrl } : m));
+      } catch (e) {
+        console.error("Failed to restore audio from history on selection:", e);
+        newAudioUrl = null;
+      }
     }
-    
+
     // Set the new URL for immediate playback
     setSelectedMusic({ ...music, audioUrl: newAudioUrl });
     setAudioUrl(newAudioUrl);
-    
+
+    // Update the UI controls to reflect this track's settings
+    setGenerationParams({
+      prompt: music.prompt,
+      duration: parseInt(music.duration) || 20
+    });
+
+    if (music.advancedSettings) {
+      setPostProcessingParams(music.advancedSettings);
+    } else {
+      // Fallback for old tracks without saved settings
+      setPostProcessingParams(initialPostProcessingParams);
+    }
+
     setShowHistory(false);
 
     // Stop current audio
