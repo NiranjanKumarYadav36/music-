@@ -14,10 +14,7 @@ import { GenerationModal } from './GenerationModal';
 import type { MusicTrack, GenerationParameters, PostProcessingParameters } from '../MusicGenerator/types';
 
 // --- Configuration ---
-const HISTORY_STORAGE_KEY = 'musicGenerationHistory';
-// Ensure this URL is correct and the server is running
-// const MUSIC_GEN_API_URL = "https://8001-01k3t9ggdeegcaqcpmfwpc5a3k.cloudspaces.litng.ai/predict"; 
-
+import { API_CONFIG, DEFAULT_GENERATION_PARAMS, DEFAULT_POST_PROCESSING_PARAMS, STORAGE_KEYS } from '../../config';
 // --- Base64 Audio Helpers ---
 
 /** Converts Blob to Base64 string for localStorage persistence. */
@@ -51,22 +48,9 @@ const base64ToBlob = (base64: string, mimeType: string): Blob => {
 };
 
 // --- Initial Parameters ---
-const initialGenerationParams: GenerationParameters = {
-  prompt: "",
-  duration: 20,
-};
+const initialGenerationParams: GenerationParameters = DEFAULT_GENERATION_PARAMS;
 
-const initialPostProcessingParams: PostProcessingParameters = {
-  reverb: 0,
-  bassBoost: 0,
-  treble: 0,
-  speed: 1.0,
-  temperature: 1.0,
-  cfgCoef: 8.0,
-  topK: 250,
-  topP: 0.0,
-  useSampling: true,
-};
+const initialPostProcessingParams: PostProcessingParameters = DEFAULT_POST_PROCESSING_PARAMS;
 
 export default function MusicGeneratorUI() {
   // State
@@ -89,7 +73,7 @@ export default function MusicGeneratorUI() {
       return [];
     }
     try {
-      const storedHistoryJson = localStorage.getItem(HISTORY_STORAGE_KEY);
+      const storedHistoryJson = localStorage.getItem(STORAGE_KEYS.HISTORY);
       if (!storedHistoryJson) return [];
 
       const storedHistory: MusicTrack[] = JSON.parse(storedHistoryJson);
@@ -116,7 +100,7 @@ export default function MusicGeneratorUI() {
       console.error("Could not load history from Local Storage. Clearing history.", error);
       // If JSON parsing fails entirely, clear local storage to prevent future crashes
       if (typeof window !== 'undefined') {
-        localStorage.removeItem(HISTORY_STORAGE_KEY);
+        localStorage.removeItem(STORAGE_KEYS.HISTORY);
       }
       return [];
     }
@@ -144,7 +128,7 @@ export default function MusicGeneratorUI() {
           return trackToStore;
         });
 
-        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(historyForStorage));
+        localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(historyForStorage));
       } catch (error) {
         console.error("Could not save history to Local Storage", error);
       }
@@ -186,8 +170,8 @@ export default function MusicGeneratorUI() {
     try {
       // Choose the right endpoint
       const apiUrl = isRefining
-        ? "https://8000-01k3t9ggdeegcaqcpmfwpc5a3k.cloudspaces.litng.ai/postprocess"
-        : "https://8000-01k3t9ggdeegcaqcpmfwpc5a3k.cloudspaces.litng.ai/generate";
+        ? `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.POST_PROCESS}`
+        : `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.GENERATE}`;
 
       const requestBody: any = {
         prompt: generationParams.prompt,

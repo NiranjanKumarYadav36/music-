@@ -5,25 +5,11 @@ import { HistoryPage } from "./components/HistoryPage";
 import { GenerationModal } from "./components/MusicGenerator/GenerationModal";
 import { cn } from "./lib/utils";
 import type { MusicTrack, GenerationParameters, PostProcessingParameters } from "./components/MusicGenerator/types";
+import { addTrack, getAllTracks, deleteTrack } from "./lib/db";
 
 const HISTORY_STORAGE_KEY = "musicGenerationHistory";
 
-// Base64 Audio Helpers
-const blobToBase64 = (blob: Blob): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (typeof reader.result === "string") {
-        const base64String = reader.result.split(",")[1];
-        resolve(base64String);
-      } else {
-        reject(new Error("Failed to read blob as string."));
-      }
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-};
+
 
 const base64ToBlob = (base64: string, mimeType: string): Blob => {
   const byteCharacters = atob(base64);
@@ -50,7 +36,7 @@ const initialPostProcessingParams: PostProcessingParameters = {
   temperature: 1.0,
   cfgCoef: 8.0,
   topK: 250,
-  topP: 0.7,
+  topP: 0.0,
   useSampling: true,
 };
 
@@ -69,98 +55,62 @@ function App() {
   const [showEditPanel, setShowEditPanel] = useState(false);
   const [showGenerationModal, setShowGenerationModal] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
-  const [musicHistory, setMusicHistory] = useState<MusicTrack[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const storedHistoryJson = localStorage.getItem(HISTORY_STORAGE_KEY);
-      if (!storedHistoryJson) return [];
-      const storedHistory: MusicTrack[] = JSON.parse(storedHistoryJson);
-      return storedHistory.map((track) => {
-        if (!track.base64Audio) {
-          return { ...track, audioUrl: null };
-        }
-        try {
-          const audioBlob = base64ToBlob(track.base64Audio, "audio/wav");
-          track.audioUrl = URL.createObjectURL(audioBlob);
-        } catch (e) {
-          console.error(`Failed to restore audio for track ${track.id}:`, e);
-          track.audioUrl = null;
-        }
-        return track;
-      });
-    } catch (error) {
-      console.error("Could not load history from Local Storage.", error);
-      if (typeof window !== "undefined") {
-        localStorage.removeItem(HISTORY_STORAGE_KEY);
-      }
-      return [];
-    }
-  });
+  const [musicHistory, setMusicHistory] = useState<MusicTrack[]>([]);
 
-  // Helper function to clean up old history entries when storage is full
-  const cleanupOldHistory = (history: MusicTrack[], maxItems: number = 50): MusicTrack[] => {
-    if (history.length <= maxItems) return history;
-    // Keep the most recent items
-    return history.slice(0, maxItems);
-  };
-
-  // Save history to localStorage with quota management
+  // Load History from IndexedDB (with migration support)
   useEffect(() => {
-    if (typeof window !== "undefined" && musicHistory.length > 0) {
+    const loadHistory = async () => {
       try {
-        const historyForStorage = musicHistory.map((track) => {
-          const { audioUrl, ...trackToStore } = track;
-          return trackToStore;
-        });
-        
-        // Try to save, if quota exceeded, clean up old entries
-        try {
-          const jsonString = JSON.stringify(historyForStorage);
-          localStorage.setItem(HISTORY_STORAGE_KEY, jsonString);
-        } catch (error: any) {
-          if (error.name === 'QuotaExceededError' || error.code === 22) {
-            // Clean up old entries (keep last 20 items to be safe)
-            let cleanedHistory = cleanupOldHistory(historyForStorage, 20);
-            try {
-              const cleanedJson = JSON.stringify(cleanedHistory);
-              localStorage.setItem(HISTORY_STORAGE_KEY, cleanedJson);
-            } catch (retryError) {
-              // If still failing, try with even fewer items
-              cleanedHistory = cleanupOldHistory(cleanedHistory, 10);
-              try {
-                const minimalJson = JSON.stringify(cleanedHistory);
-                localStorage.setItem(HISTORY_STORAGE_KEY, minimalJson);
-              } catch (finalError) {
-                // Last resort: clear and save only the most recent 5 items
-                const emergencyHistory = cleanupOldHistory(cleanedHistory, 5);
-                localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(emergencyHistory));
+        // 1. Check for legacy localStorage data to migrate
+        const storedHistoryJson = localStorage.getItem(HISTORY_STORAGE_KEY);
+        if (storedHistoryJson) {
+          console.log("Migrating legacy history to IndexedDB...");
+          try {
+            const legacyHistory: MusicTrack[] = JSON.parse(storedHistoryJson);
+            for (const track of legacyHistory) {
+              if (track.base64Audio) {
+                const blob = base64ToBlob(track.base64Audio, "audio/wav");
+                await addTrack({
+                  id: track.id,
+                  prompt: track.prompt,
+                  duration: track.duration,
+                  date: track.date,
+                  audioBlob: blob,
+                  advancedSettings: track.advancedSettings
+                });
               }
             }
-            // Only update state if we actually removed items to prevent loops
-            if (cleanedHistory.length < historyForStorage.length) {
-              const restoredHistory = cleanedHistory.map((track) => {
-                if (!track.base64Audio) {
-                  return { ...track, audioUrl: null };
-                }
-                try {
-                  const audioBlob = base64ToBlob(track.base64Audio, "audio/wav");
-                  return { ...track, audioUrl: URL.createObjectURL(audioBlob) };
-                } catch (e) {
-                  return { ...track, audioUrl: null };
-                }
-              });
-              // Use requestAnimationFrame to break the update cycle
-              requestAnimationFrame(() => {
-                setMusicHistory(restoredHistory);
-              });
-            }
+            // Clear legacy storage after successful migration
+            localStorage.removeItem(HISTORY_STORAGE_KEY);
+            console.log("Migration complete.");
+          } catch (e) {
+            console.error("Migration failed:", e);
           }
         }
+
+        // 2. Load from IndexedDB
+        const dbTracks = await getAllTracks();
+
+        // Convert DB tracks to App tracks (create Object URLs)
+        const appTracks: MusicTrack[] = dbTracks.map(t => ({
+          id: t.id,
+          prompt: t.prompt,
+          duration: t.duration,
+          date: t.date,
+          audioUrl: URL.createObjectURL(t.audioBlob),
+          advancedSettings: t.advancedSettings,
+          isEdited: t.isEdited,
+        }));
+
+        setMusicHistory(appTracks);
+
       } catch (error) {
-        // Silently handle errors to avoid console spam
+        console.error("Failed to load history:", error);
       }
-    }
-  }, [musicHistory]);
+    };
+
+    loadHistory();
+  }, []);
 
   const generateMusic = async () => {
     if (!generationParams.prompt.trim()) return;
@@ -175,18 +125,18 @@ function App() {
     const estimatedDuration = 30000; // 30 seconds estimated
     const targetProgress = 90; // Stop at 90% until API completes
     let lastSetProgress = 0;
-    
+
     const progressInterval = setInterval(() => {
       const elapsed = Date.now() - startTime;
       // Linear progression: progress increases smoothly over time
       const calculatedProgress = Math.min((elapsed / estimatedDuration) * targetProgress, targetProgress);
-      
+
       // Only update if progress has meaningfully changed (avoid micro-updates)
       if (Math.abs(calculatedProgress - lastSetProgress) >= 0.5 || calculatedProgress >= targetProgress) {
         const newProgress = Math.min(calculatedProgress, targetProgress);
         lastSetProgress = newProgress;
         setGenerationProgress(newProgress);
-        
+
         if (newProgress >= targetProgress) {
           clearInterval(progressInterval);
         }
@@ -198,6 +148,13 @@ function App() {
       const requestBody = {
         prompt: generationParams.prompt,
         duration: generationParams.duration,
+        advanced_params: {
+          temperature: postProcessingParams.temperature,
+          cfg_coef: postProcessingParams.cfgCoef,
+          top_k: postProcessingParams.topK,
+          top_p: postProcessingParams.topP,
+          use_sampling: postProcessingParams.useSampling,
+        },
       };
 
       const response = await fetch(apiUrl, {
@@ -213,11 +170,26 @@ function App() {
       setGenerationProgress(100);
 
       const audioBlob = await response.blob();
-      const base64Audio = await blobToBase64(audioBlob);
       const newAudioUrl = URL.createObjectURL(audioBlob);
+      const newId = Date.now();
+
+      // Save to IndexedDB
+      await addTrack({
+        id: newId,
+        prompt: generationParams.prompt,
+        duration: `${generationParams.duration}s`,
+        date: new Date().toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        audioBlob: audioBlob,
+        advancedSettings: { ...postProcessingParams },
+      });
 
       const newMusic: MusicTrack = {
-        id: Date.now(),
+        id: newId,
         prompt: generationParams.prompt,
         duration: `${generationParams.duration}s`,
         date: new Date().toLocaleDateString("en-US", {
@@ -227,7 +199,7 @@ function App() {
           minute: "2-digit",
         }),
         audioUrl: newAudioUrl,
-        base64Audio: base64Audio,
+        advancedSettings: { ...postProcessingParams },
       };
 
       setCurrentMusic(newMusic);
@@ -254,25 +226,20 @@ function App() {
   };
 
   const selectMusicFromHistory = (music: MusicTrack) => {
-    let newAudioUrl = music.audioUrl;
-    if (!newAudioUrl && music.base64Audio) {
-      try {
-        const audioBlob = base64ToBlob(music.base64Audio, "audio/wav");
-        newAudioUrl = URL.createObjectURL(audioBlob);
-        setMusicHistory((prev) =>
-          prev.map((m) => (m.id === music.id ? { ...m, audioUrl: newAudioUrl } : m))
-        );
-      } catch (e) {
-        console.error("Failed to restore audio from history:", e);
-        newAudioUrl = null;
-      }
+    // Audio URL is already managed by the DB loader
+    setCurrentMusic(music);
+
+    // Restore generation parameters if available, otherwise reset to defaults
+    if (music.advancedSettings) {
+      setPostProcessingParams(music.advancedSettings);
+    } else {
+      setPostProcessingParams(initialPostProcessingParams);
     }
-    setCurrentMusic({ ...music, audioUrl: newAudioUrl });
   };
 
   const handleEditMusic = async () => {
     if (!currentMusic) return;
-    
+
     // Show modal for editing too
     setShowGenerationModal(true);
     setGenerationProgress(0);
@@ -283,17 +250,17 @@ function App() {
     const estimatedDuration = 30000; // 30 seconds estimated
     const targetProgress = 90;
     let lastSetProgress = 0;
-    
+
     const progressInterval = setInterval(() => {
       const elapsed = Date.now() - startTime;
       const calculatedProgress = Math.min((elapsed / estimatedDuration) * targetProgress, targetProgress);
-      
+
       // Only update if progress has meaningfully changed
       if (Math.abs(calculatedProgress - lastSetProgress) >= 0.5 || calculatedProgress >= targetProgress) {
         const newProgress = Math.min(calculatedProgress, targetProgress);
         lastSetProgress = newProgress;
         setGenerationProgress(newProgress);
-        
+
         if (newProgress >= targetProgress) {
           clearInterval(progressInterval);
         }
@@ -328,13 +295,29 @@ function App() {
       setGenerationProgress(100);
 
       const audioBlob = await response.blob();
-      const base64Audio = await blobToBase64(audioBlob);
       const newAudioUrl = URL.createObjectURL(audioBlob);
+
+      // Update in DB
+      await addTrack({
+        id: currentMusic.id,
+        prompt: currentMusic.prompt,
+        duration: currentMusic.duration,
+        date: new Date().toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        audioBlob: audioBlob,
+        advancedSettings: { ...postProcessingParams },
+        isEdited: true,
+      });
 
       const updatedMusic: MusicTrack = {
         ...currentMusic,
         audioUrl: newAudioUrl,
-        base64Audio: base64Audio,
+        advancedSettings: { ...postProcessingParams },
+        isEdited: true,
         date: new Date().toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
@@ -368,10 +351,15 @@ function App() {
     }
   };
 
-  const deleteFromHistory = (id: number) => {
-    setMusicHistory((prev) => prev.filter((music) => music.id !== id));
-    if (currentMusic?.id === id) {
-      setCurrentMusic(null);
+  const deleteFromHistory = async (id: number) => {
+    try {
+      await deleteTrack(id);
+      setMusicHistory((prev) => prev.filter((music) => music.id !== id));
+      if (currentMusic?.id === id) {
+        setCurrentMusic(null);
+      }
+    } catch (error) {
+      console.error("Failed to delete track:", error);
     }
   };
 
@@ -432,7 +420,7 @@ function App() {
           "dark:bg-gradient-to-r dark:from-purple-900/20 dark:via-transparent dark:to-cyan-900/20",
           "bg-gradient-to-r from-purple-300/40 via-transparent to-cyan-300/40"
         )} />
-        
+
         {/* Main Content */}
         <div className="relative z-10 flex flex-col h-screen overflow-hidden">
           <Navigation
@@ -451,96 +439,96 @@ function App() {
           {currentPage === "generate" && (
             <div className="flex-1 animate-in fade-in overflow-hidden min-h-0">
               <GeneratePage
-              prompt={generationParams.prompt}
-              onPromptChange={(value) => setGenerationParams({ ...generationParams, prompt: value })}
-              duration={generationParams.duration}
-              onDurationChange={(value) => setGenerationParams({ ...generationParams, duration: value })}
-              onGenerate={generateMusic}
-              isLoading={isLoading}
-              currentMusic={currentMusic}
-              onEditClick={() => setShowEditPanel(!showEditPanel)}
-              showEditPanel={showEditPanel}
-              temperature={postProcessingParams.temperature}
-              onTemperatureChange={(value) =>
-                setPostProcessingParams({ ...postProcessingParams, temperature: value })
-              }
-              cfgCoef={postProcessingParams.cfgCoef}
-              onCfgCoefChange={(value) =>
-                setPostProcessingParams({ ...postProcessingParams, cfgCoef: value })
-              }
-              topK={postProcessingParams.topK}
-              onTopKChange={(value) => setPostProcessingParams({ ...postProcessingParams, topK: value })}
-              topP={postProcessingParams.topP}
-              onTopPChange={(value) => setPostProcessingParams({ ...postProcessingParams, topP: value })}
-              useSampling={postProcessingParams.useSampling}
-              onUseSamplingChange={(value) =>
-                setPostProcessingParams({ ...postProcessingParams, useSampling: value })
-              }
-              reverb={postProcessingParams.reverb}
-              onReverbChange={(value) =>
-                setPostProcessingParams({ ...postProcessingParams, reverb: value })
-              }
-              bassBoost={postProcessingParams.bassBoost}
-              onBassBoostChange={(value) =>
-                setPostProcessingParams({ ...postProcessingParams, bassBoost: value })
-              }
-              treble={postProcessingParams.treble}
-              onTrebleChange={(value) =>
-                setPostProcessingParams({ ...postProcessingParams, treble: value })
-              }
-              speed={postProcessingParams.speed}
-              onSpeedChange={(value) =>
-                setPostProcessingParams({ ...postProcessingParams, speed: value })
-              }
-              onResetEffects={handleResetEffects}
-              onApplyEdit={handleEditMusic}
+                prompt={generationParams.prompt}
+                onPromptChange={(value) => setGenerationParams({ ...generationParams, prompt: value })}
+                duration={generationParams.duration}
+                onDurationChange={(value) => setGenerationParams({ ...generationParams, duration: value })}
+                onGenerate={generateMusic}
+                isLoading={isLoading}
+                currentMusic={currentMusic}
+                onEditClick={() => setShowEditPanel(!showEditPanel)}
+                showEditPanel={showEditPanel}
+                temperature={postProcessingParams.temperature}
+                onTemperatureChange={(value) =>
+                  setPostProcessingParams({ ...postProcessingParams, temperature: value })
+                }
+                cfgCoef={postProcessingParams.cfgCoef}
+                onCfgCoefChange={(value) =>
+                  setPostProcessingParams({ ...postProcessingParams, cfgCoef: value })
+                }
+                topK={postProcessingParams.topK}
+                onTopKChange={(value) => setPostProcessingParams({ ...postProcessingParams, topK: value })}
+                topP={postProcessingParams.topP}
+                onTopPChange={(value) => setPostProcessingParams({ ...postProcessingParams, topP: value })}
+                useSampling={postProcessingParams.useSampling}
+                onUseSamplingChange={(value) =>
+                  setPostProcessingParams({ ...postProcessingParams, useSampling: value })
+                }
+                reverb={postProcessingParams.reverb}
+                onReverbChange={(value) =>
+                  setPostProcessingParams({ ...postProcessingParams, reverb: value })
+                }
+                bassBoost={postProcessingParams.bassBoost}
+                onBassBoostChange={(value) =>
+                  setPostProcessingParams({ ...postProcessingParams, bassBoost: value })
+                }
+                treble={postProcessingParams.treble}
+                onTrebleChange={(value) =>
+                  setPostProcessingParams({ ...postProcessingParams, treble: value })
+                }
+                speed={postProcessingParams.speed}
+                onSpeedChange={(value) =>
+                  setPostProcessingParams({ ...postProcessingParams, speed: value })
+                }
+                onResetEffects={handleResetEffects}
+                onApplyEdit={handleEditMusic}
               />
             </div>
           )}
           {currentPage === "history" && (
             <div className="flex-1 animate-in fade-in overflow-hidden min-h-0">
-            <HistoryPage
-              musicHistory={musicHistory}
-              selectedMusic={currentMusic}
-              onSelectMusic={selectMusicFromHistory}
-              onDeleteMusic={deleteFromHistory}
-              onEditClick={() => {}}
-              temperature={postProcessingParams.temperature}
-              onTemperatureChange={(value) =>
-                setPostProcessingParams({ ...postProcessingParams, temperature: value })
-              }
-              cfgCoef={postProcessingParams.cfgCoef}
-              onCfgCoefChange={(value) =>
-                setPostProcessingParams({ ...postProcessingParams, cfgCoef: value })
-              }
-              topK={postProcessingParams.topK}
-              onTopKChange={(value) => setPostProcessingParams({ ...postProcessingParams, topK: value })}
-              topP={postProcessingParams.topP}
-              onTopPChange={(value) => setPostProcessingParams({ ...postProcessingParams, topP: value })}
-              useSampling={postProcessingParams.useSampling}
-              onUseSamplingChange={(value) =>
-                setPostProcessingParams({ ...postProcessingParams, useSampling: value })
-              }
-              reverb={postProcessingParams.reverb}
-              onReverbChange={(value) =>
-                setPostProcessingParams({ ...postProcessingParams, reverb: value })
-              }
-              bassBoost={postProcessingParams.bassBoost}
-              onBassBoostChange={(value) =>
-                setPostProcessingParams({ ...postProcessingParams, bassBoost: value })
-              }
-              treble={postProcessingParams.treble}
-              onTrebleChange={(value) =>
-                setPostProcessingParams({ ...postProcessingParams, treble: value })
-              }
-              speed={postProcessingParams.speed}
-              onSpeedChange={(value) =>
-                setPostProcessingParams({ ...postProcessingParams, speed: value })
-              }
-              onResetEffects={handleResetEffects}
-              onApplyEdit={handleEditMusic}
-              isLoading={isLoading}
-            />
+              <HistoryPage
+                musicHistory={musicHistory}
+                selectedMusic={currentMusic}
+                onSelectMusic={selectMusicFromHistory}
+                onDeleteMusic={deleteFromHistory}
+                onEditClick={() => { }}
+                temperature={postProcessingParams.temperature}
+                onTemperatureChange={(value) =>
+                  setPostProcessingParams({ ...postProcessingParams, temperature: value })
+                }
+                cfgCoef={postProcessingParams.cfgCoef}
+                onCfgCoefChange={(value) =>
+                  setPostProcessingParams({ ...postProcessingParams, cfgCoef: value })
+                }
+                topK={postProcessingParams.topK}
+                onTopKChange={(value) => setPostProcessingParams({ ...postProcessingParams, topK: value })}
+                topP={postProcessingParams.topP}
+                onTopPChange={(value) => setPostProcessingParams({ ...postProcessingParams, topP: value })}
+                useSampling={postProcessingParams.useSampling}
+                onUseSamplingChange={(value) =>
+                  setPostProcessingParams({ ...postProcessingParams, useSampling: value })
+                }
+                reverb={postProcessingParams.reverb}
+                onReverbChange={(value) =>
+                  setPostProcessingParams({ ...postProcessingParams, reverb: value })
+                }
+                bassBoost={postProcessingParams.bassBoost}
+                onBassBoostChange={(value) =>
+                  setPostProcessingParams({ ...postProcessingParams, bassBoost: value })
+                }
+                treble={postProcessingParams.treble}
+                onTrebleChange={(value) =>
+                  setPostProcessingParams({ ...postProcessingParams, treble: value })
+                }
+                speed={postProcessingParams.speed}
+                onSpeedChange={(value) =>
+                  setPostProcessingParams({ ...postProcessingParams, speed: value })
+                }
+                onResetEffects={handleResetEffects}
+                onApplyEdit={handleEditMusic}
+                isLoading={isLoading}
+              />
             </div>
           )}
         </div>

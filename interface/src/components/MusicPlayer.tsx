@@ -18,7 +18,7 @@ export function MusicPlayer({ track, onEdit }: MusicPlayerProps) {
   useEffect(() => {
     if (track?.audioUrl && audioRef.current) {
       const audio = audioRef.current;
-      
+
       const updateTime = () => setCurrentTime(audio.currentTime);
       const updateDuration = () => setDuration(audio.duration);
       const handleEnded = () => {
@@ -95,6 +95,11 @@ export function MusicPlayer({ track, onEdit }: MusicPlayerProps) {
           </h3>
           <p className={cn("text-sm text-gray-400 dark:text-gray-400 text-gray-600")}>
             {track.duration} • {track.date}
+            {track.isEdited && (
+              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                Refined ✨
+              </span>
+            )}
           </p>
         </div>
       </div>

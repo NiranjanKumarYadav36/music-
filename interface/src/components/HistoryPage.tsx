@@ -177,9 +177,9 @@ export function HistoryPage({
           {/* Selected Music Player */}
           {selectedMusic && (
             <div className="mb-6 transition-all duration-500 ease-in-out animate-in fade-in slide-in-from-top-4">
-              <MusicPlayer 
-                track={selectedMusic} 
-                onEdit={() => setShowEditPanel(!showEditPanel)} 
+              <MusicPlayer
+                track={selectedMusic}
+                onEdit={() => setShowEditPanel(!showEditPanel)}
               />
             </div>
           )}
@@ -244,12 +244,12 @@ export function HistoryPage({
               {sortedHistory.map((track) => (
                 <div
                   key={track.id}
-                className={cn(
-                  "backdrop-blur-md rounded-xl p-4 border transition-all cursor-pointer group border-2",
-                  "bg-white/5 dark:bg-white/5 bg-white shadow-md",
-                  selectedMusic?.id === track.id
-                    ? "border-purple-500 dark:border-purple-500/50 border-purple-500 shadow-lg shadow-purple-500/30 dark:shadow-purple-500/20 bg-purple-50"
-                    : "border-white/10 dark:border-white/10 border-gray-300 hover:border-purple-300 dark:hover:border-white/20 hover:shadow-lg"
+                  className={cn(
+                    "backdrop-blur-md rounded-xl p-4 border transition-all cursor-pointer group border-2",
+                    "bg-white/5 dark:bg-white/5 bg-white shadow-md",
+                    selectedMusic?.id === track.id
+                      ? "border-purple-500 dark:border-purple-500/50 border-purple-500 shadow-lg shadow-purple-500/30 dark:shadow-purple-500/20 bg-purple-50"
+                      : "border-white/10 dark:border-white/10 border-gray-300 hover:border-purple-300 dark:hover:border-white/20 hover:shadow-lg"
                   )}
                   onClick={() => onSelectMusic(track)}
                 >
@@ -258,7 +258,14 @@ export function HistoryPage({
                       <h3 className={cn("font-semibold truncate mb-1 text-white dark:text-white text-gray-900")}>
                         {track.prompt}
                       </h3>
-                      <p className={cn("text-xs text-gray-400 dark:text-gray-400 text-gray-600")}>{track.date}</p>
+                      <p className={cn("text-xs text-gray-400 dark:text-gray-400 text-gray-600 flex items-center")}>
+                        {track.date}
+                        {track.isEdited && (
+                          <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                            Refined <Sparkles className="w-2.5 h-2.5" />
+                          </span>
+                        )}
+                      </p>
                     </div>
                     <span className={cn("text-xs ml-2 text-purple-400 dark:text-purple-400")}>
                       {track.duration}
