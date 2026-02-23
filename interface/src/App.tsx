@@ -6,6 +6,7 @@ import { GenerationModal } from "./components/MusicGenerator/GenerationModal";
 import { cn } from "./lib/utils";
 import type { MusicTrack, GenerationParameters, PostProcessingParameters } from "./components/MusicGenerator/types";
 import { addTrack, getAllTracks, deleteTrack } from "./lib/db";
+import { API_CONFIG } from "./config";
 
 const HISTORY_STORAGE_KEY = "musicGenerationHistory";
 
@@ -144,7 +145,7 @@ function App() {
     }, 200); // Update every 200ms - less frequent but still smooth
 
     try {
-      const apiUrl = "https://8001-01k3t9ggdeegcaqcpmfwpc5a3k.cloudspaces.litng.ai/generate";
+      const apiUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.GENERATE}`;
       const requestBody = {
         prompt: generationParams.prompt,
         duration: generationParams.duration,
@@ -269,7 +270,7 @@ function App() {
 
     try {
       // Use postprocess endpoint to refine the music with current settings
-      const apiUrl = "https://8001-01k3t9ggdeegcaqcpmfwpc5a3k.cloudspaces.litng.ai/postprocess";
+      const apiUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.POST_PROCESS}`;
       const requestBody = {
         prompt: currentMusic.prompt,
         duration: parseInt(currentMusic.duration),

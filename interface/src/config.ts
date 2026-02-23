@@ -12,7 +12,7 @@ import type { GenerationParameters, PostProcessingParameters } from './component
  */
 export const API_CONFIG = {
     // ⚡ CHANGE THIS URL TO YOUR SPECIFIC LIGHTNING AI ENDPOINT ⚡
-    BASE_URL: "https://8000-01k3t9ggdeegcaqcpmfwpc5a3k.cloudspaces.litng.ai",
+    BASE_URL: "https://8001-01k3t9ggdeegcaqcpmfwpc5a3k.cloudspaces.litng.ai",
 
     // Endpoints (usually these don't need changing)
     ENDPOINTS: {
