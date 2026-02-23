@@ -44,13 +44,13 @@ export const GenerationForm: React.FC<GenerationFormProps> = ({
           label={`Duration: ${parameters.duration}s`}
           value={parameters.duration}
           min={5}
-          max={60}
+          max={120}
           step={1}
           onChange={handleSliderChange('duration')}
           disabled={isLoading}
         />
       </div>
-      
+
       {/* Advanced generation parameters have been removed from here and moved to PostProcessingSidebar */}
     </div>
   );

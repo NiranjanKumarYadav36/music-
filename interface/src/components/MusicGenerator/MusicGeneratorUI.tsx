@@ -135,14 +135,15 @@ export default function MusicGeneratorUI() {
     }
   }, [musicHistory]);
 
+  const [generationStatus, setGenerationStatus] = useState("Preparing engine...");
+
   // Event Handlers
   const generateMusic = async (isRefining: boolean = false) => {
     if (!generationParams.prompt) return;
 
-    // Show modal immediately - before any async operations
-    console.log('Opening generation modal...');
     setShowGenerationModal(true);
     setGenerationProgress(0);
+    setGenerationStatus(isRefining ? "Analyzing track..." : "Initializing generator...");
     setIsLoading(true);
 
     if (!isRefining) {
@@ -156,19 +157,37 @@ export default function MusicGeneratorUI() {
       setCurrentAudio(null);
     }
 
-    // Simulate progress updates
+    const startTime = Date.now();
+    const requestedDuration = generationParams.duration;
+    // Estimated generation time: ~1.2s per output second + 10s overhead
+    const estimatedGenTime = (requestedDuration * 1200) + 10000;
+    let lastSetProgress = 0;
+
     const progressInterval = setInterval(() => {
-      setGenerationProgress((prev) => {
-        if (prev >= 90) {
-          clearInterval(progressInterval);
-          return 90; // Don't go to 100% until API call completes
-        }
-        return prev + Math.random() * 15; // Increment by 0-15%
-      });
-    }, 500);
+      const elapsed = Date.now() - startTime;
+      let calculatedProgress = 0;
+
+      if (elapsed < 2000) {
+        calculatedProgress = (elapsed / 2000) * 15;
+        setGenerationStatus(isRefining ? "Preparing refinement..." : "Setting up environment...");
+      } else if (elapsed < estimatedGenTime) {
+        const genElapsed = elapsed - 2000;
+        const genTotal = estimatedGenTime - 2000;
+        calculatedProgress = 15 + (genElapsed / genTotal) * 60;
+        setGenerationStatus(`${isRefining ? 'Refining' : 'Composing'} (${Math.floor(calculatedProgress)}%)...`);
+      } else {
+        const processElapsed = elapsed - estimatedGenTime;
+        calculatedProgress = 75 + (23 * (1 - Math.exp(-processElapsed / 15000)));
+        setGenerationStatus(isRefining ? "Finalizing effects..." : "Refining audio results...");
+      }
+
+      if (Math.abs(calculatedProgress - lastSetProgress) >= 0.1) {
+        lastSetProgress = calculatedProgress;
+        setGenerationProgress(calculatedProgress);
+      }
+    }, 100);
 
     try {
-      // Choose the right endpoint
       const apiUrl = isRefining
         ? `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.POST_PROCESS}`
         : `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.GENERATE}`;
@@ -178,7 +197,6 @@ export default function MusicGeneratorUI() {
         duration: generationParams.duration,
       };
 
-      // Always include advanced params to ensure consistency
       requestBody.advanced_params = {
         temperature: postProcessingParams.temperature,
         cfg_coef: postProcessingParams.cfgCoef,
@@ -195,11 +213,10 @@ export default function MusicGeneratorUI() {
 
       if (!response.ok) throw new Error("API call failed with status: " + response.status);
 
-      // Complete progress to 100%
+      setGenerationStatus("Almost there...");
       clearInterval(progressInterval);
       setGenerationProgress(100);
 
-      // Rest of your code remains the same...
       const audioBlob = await response.blob();
       const base64Audio = await blobToBase64(audioBlob);
       const newAudioUrl = URL.createObjectURL(audioBlob);
@@ -227,16 +244,16 @@ export default function MusicGeneratorUI() {
         setTimeout(() => setShowPostProcessing(true), 500);
       }
 
-      // Close modal after a brief delay to show 100% completion
       setTimeout(() => {
         setShowGenerationModal(false);
         setGenerationProgress(0);
+        setGenerationStatus("Preparing engine...");
       }, 800);
 
     } catch (err) {
       console.error("Error generating music:", err);
+      setGenerationStatus("Generation failed");
       clearInterval(progressInterval);
-      // Close modal on error
       setTimeout(() => {
         setShowGenerationModal(false);
         setGenerationProgress(0);
@@ -455,6 +472,7 @@ export default function MusicGeneratorUI() {
       <GenerationModal
         isOpen={showGenerationModal}
         progress={generationProgress}
+        status={generationStatus}
         onClose={() => {
           // Only allow manual close if not actively loading
           if (!isLoading) {

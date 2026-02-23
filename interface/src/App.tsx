@@ -113,36 +113,49 @@ function App() {
     loadHistory();
   }, []);
 
+  const [generationStatus, setGenerationStatus] = useState("Preparing engine...");
+
   const generateMusic = async () => {
     if (!generationParams.prompt.trim()) return;
 
-    // Show modal immediately
     setShowGenerationModal(true);
     setGenerationProgress(0);
+    setGenerationStatus("Initializing generator...");
     setIsLoading(true);
 
-    // Smooth linear progress simulation - gradually increase to 90%
     const startTime = Date.now();
-    const estimatedDuration = 30000; // 30 seconds estimated
-    const targetProgress = 90; // Stop at 90% until API completes
+    const requestedDuration = generationParams.duration;
+    // Estimated generation time: ~1.2s per output second + 10s overhead
+    const estimatedGenTime = (requestedDuration * 1200) + 10000;
     let lastSetProgress = 0;
 
     const progressInterval = setInterval(() => {
       const elapsed = Date.now() - startTime;
-      // Linear progression: progress increases smoothly over time
-      const calculatedProgress = Math.min((elapsed / estimatedDuration) * targetProgress, targetProgress);
+      let calculatedProgress = 0;
 
-      // Only update if progress has meaningfully changed (avoid micro-updates)
-      if (Math.abs(calculatedProgress - lastSetProgress) >= 0.5 || calculatedProgress >= targetProgress) {
-        const newProgress = Math.min(calculatedProgress, targetProgress);
-        lastSetProgress = newProgress;
-        setGenerationProgress(newProgress);
-
-        if (newProgress >= targetProgress) {
-          clearInterval(progressInterval);
-        }
+      if (elapsed < 2000) {
+        // Phase 1: Rapid initialization (0-15%)
+        calculatedProgress = (elapsed / 2000) * 15;
+        setGenerationStatus("Setting up environment...");
+      } else if (elapsed < estimatedGenTime) {
+        // Phase 2: Generation (15-75%)
+        const genElapsed = elapsed - 2000;
+        const genTotal = estimatedGenTime - 2000;
+        calculatedProgress = 15 + (genElapsed / genTotal) * 60;
+        setGenerationStatus(`Composing your track (${Math.floor(calculatedProgress)}%)...`);
+      } else {
+        // Phase 3: Processing Crawl (75-98%)
+        const processElapsed = elapsed - estimatedGenTime;
+        // Asymptotic crawl towards 98%
+        calculatedProgress = 75 + (23 * (1 - Math.exp(-processElapsed / 15000)));
+        setGenerationStatus("Refining audio results...");
       }
-    }, 200); // Update every 200ms - less frequent but still smooth
+
+      if (Math.abs(calculatedProgress - lastSetProgress) >= 0.1) {
+        lastSetProgress = calculatedProgress;
+        setGenerationProgress(calculatedProgress);
+      }
+    }, 100);
 
     try {
       const apiUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.GENERATE}`;
@@ -166,7 +179,7 @@ function App() {
 
       if (!response.ok) throw new Error("API call failed with status: " + response.status);
 
-      // Complete progress to 100%
+      setGenerationStatus("Finalizing playback...");
       clearInterval(progressInterval);
       setGenerationProgress(100);
 
@@ -174,7 +187,6 @@ function App() {
       const newAudioUrl = URL.createObjectURL(audioBlob);
       const newId = Date.now();
 
-      // Save to IndexedDB
       await addTrack({
         id: newId,
         prompt: generationParams.prompt,
@@ -205,17 +217,17 @@ function App() {
 
       setCurrentMusic(newMusic);
       setMusicHistory((prev) => [newMusic, ...prev]);
-      setShowEditPanel(false); // Hide settings when new music is generated
+      setShowEditPanel(false);
 
-      // Close modal after a brief delay to show 100% completion
       setTimeout(() => {
         setShowGenerationModal(false);
         setGenerationProgress(0);
+        setGenerationStatus("Preparing engine...");
       }, 800);
     } catch (err) {
       console.error("Error generating music:", err);
       clearInterval(progressInterval);
-      // Close modal on error
+      setGenerationStatus("Generation failed");
       setTimeout(() => {
         setShowGenerationModal(false);
         setGenerationProgress(0);
@@ -241,35 +253,41 @@ function App() {
   const handleEditMusic = async () => {
     if (!currentMusic) return;
 
-    // Show modal for editing too
     setShowGenerationModal(true);
     setGenerationProgress(0);
+    setGenerationStatus("Preparing refinement...");
     setIsLoading(true);
 
-    // Smooth linear progress simulation for editing
     const startTime = Date.now();
-    const estimatedDuration = 30000; // 30 seconds estimated
-    const targetProgress = 90;
+    const currentDuration = parseInt(currentMusic.duration) || 60;
+    const estimatedGenTime = (currentDuration * 1200) + 10000;
     let lastSetProgress = 0;
 
     const progressInterval = setInterval(() => {
       const elapsed = Date.now() - startTime;
-      const calculatedProgress = Math.min((elapsed / estimatedDuration) * targetProgress, targetProgress);
+      let calculatedProgress = 0;
 
-      // Only update if progress has meaningfully changed
-      if (Math.abs(calculatedProgress - lastSetProgress) >= 0.5 || calculatedProgress >= targetProgress) {
-        const newProgress = Math.min(calculatedProgress, targetProgress);
-        lastSetProgress = newProgress;
-        setGenerationProgress(newProgress);
-
-        if (newProgress >= targetProgress) {
-          clearInterval(progressInterval);
-        }
+      if (elapsed < 2000) {
+        calculatedProgress = (elapsed / 2000) * 15;
+        setGenerationStatus("Analyzing current track...");
+      } else if (elapsed < estimatedGenTime) {
+        const genElapsed = elapsed - 2000;
+        const genTotal = estimatedGenTime - 2000;
+        calculatedProgress = 15 + (genElapsed / genTotal) * 60;
+        setGenerationStatus(`Refining audio (${Math.floor(calculatedProgress)}%)...`);
+      } else {
+        const processElapsed = elapsed - estimatedGenTime;
+        calculatedProgress = 75 + (23 * (1 - Math.exp(-processElapsed / 15000)));
+        setGenerationStatus("Finalizing effects...");
       }
-    }, 200);
+
+      if (Math.abs(calculatedProgress - lastSetProgress) >= 0.1) {
+        lastSetProgress = calculatedProgress;
+        setGenerationProgress(calculatedProgress);
+      }
+    }, 100);
 
     try {
-      // Use postprocess endpoint to refine the music with current settings
       const apiUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.POST_PROCESS}`;
       const requestBody = {
         prompt: currentMusic.prompt,
@@ -291,14 +309,13 @@ function App() {
 
       if (!response.ok) throw new Error("API call failed with status: " + response.status);
 
-      // Complete progress to 100%
+      setGenerationStatus("Applying final touch...");
       clearInterval(progressInterval);
       setGenerationProgress(100);
 
       const audioBlob = await response.blob();
       const newAudioUrl = URL.createObjectURL(audioBlob);
 
-      // Update in DB
       await addTrack({
         id: currentMusic.id,
         prompt: currentMusic.prompt,
@@ -333,15 +350,15 @@ function App() {
       );
       setShowEditPanel(false);
 
-      // Close modal after a brief delay
       setTimeout(() => {
         setShowGenerationModal(false);
         setGenerationProgress(0);
+        setGenerationStatus("Preparing engine...");
       }, 800);
     } catch (err) {
       console.error("Error editing music:", err);
       clearInterval(progressInterval);
-      // Close modal on error
+      setGenerationStatus("Refinement failed");
       setTimeout(() => {
         setShowGenerationModal(false);
         setGenerationProgress(0);
@@ -539,6 +556,7 @@ function App() {
       <GenerationModal
         isOpen={showGenerationModal}
         progress={generationProgress}
+        status={generationStatus}
         onClose={() => {
           // Only allow manual close if not actively loading
           if (!isLoading) {

@@ -3,7 +3,6 @@ import { Button } from "./ui/button";
 import { Label } from "./ui/label";
 import { Slider } from "./ui/slider";
 import { MusicPlayer } from "./MusicPlayer";
-import { SettingsPanel } from "./SettingsPanel";
 import { cn } from "@/lib/utils";
 import type { MusicTrack } from "./MusicGenerator/types";
 import { EditSettingsModal } from "./EditSettingsModal";
@@ -109,26 +108,26 @@ export function GeneratePage({
               <Sparkles className="w-4 h-4 text-purple-400 dark:text-purple-400" />
               Describe your music
             </Label>
-          <div className="relative">
-            <textarea
-              value={prompt}
-              onChange={(e) => onPromptChange(e.target.value)}
-              placeholder="e.g., Upbeat electronic dance music with synthesizers and heavy bass."
-              maxLength={500}
-              className={cn(
-                "w-full min-h-[120px] backdrop-blur-sm rounded-xl px-4 py-3 resize-none transition-all",
-                "bg-black/30 dark:bg-black/30 bg-gray-50 border-2",
-                "border border-white/10 dark:border-white/10 border-gray-300",
-                "text-white dark:text-white text-gray-900",
-                "placeholder:text-gray-500 dark:placeholder:text-gray-500 placeholder:text-gray-500",
-                "focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 dark:focus:border-purple-500/50 focus:border-purple-500"
-              )}
-            />
-            <div className={cn("absolute bottom-3 right-3 text-xs text-gray-400 dark:text-gray-400 text-gray-500")}>
-              {prompt.length} / 500
+            <div className="relative">
+              <textarea
+                value={prompt}
+                onChange={(e) => onPromptChange(e.target.value)}
+                placeholder="e.g., Upbeat electronic dance music with synthesizers and heavy bass."
+                maxLength={500}
+                className={cn(
+                  "w-full min-h-[120px] backdrop-blur-sm rounded-xl px-4 py-3 resize-none transition-all",
+                  "bg-black/30 dark:bg-black/30 bg-gray-50 border-2",
+                  "border border-white/10 dark:border-white/10 border-gray-300",
+                  "text-white dark:text-white text-gray-900",
+                  "placeholder:text-gray-500 dark:placeholder:text-gray-500 placeholder:text-gray-500",
+                  "focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 dark:focus:border-purple-500/50 focus:border-purple-500"
+                )}
+              />
+              <div className={cn("absolute bottom-3 right-3 text-xs text-gray-400 dark:text-gray-400 text-gray-500")}>
+                {prompt.length} / 500
+              </div>
             </div>
           </div>
-        </div>
         )}
 
         {/* Duration - Only show when no music or when reset */}
@@ -140,22 +139,32 @@ export function GeneratePage({
             "animate-in fade-in slide-in-from-bottom-4"
           )}>
             <Label className={cn("mb-4 block text-white dark:text-white text-gray-900")}>Duration</Label>
-          <div className="space-y-4">
-            <Slider
-              value={[duration]}
-              onValueChange={([value]) => onDurationChange(value)}
-              min={5}
-              max={60}
-              step={1}
-              className="[&_[data-slot=slider-track]]:bg-gradient-to-r [&_[data-slot=slider-track]]:from-purple-500 [&_[data-slot=slider-track]]:to-cyan-500 [&_[data-slot=slider-thumb]]:bg-blue-500 [&_[data-slot=slider-thumb]]:border-blue-400"
-            />
-            <div className={cn("flex justify-between text-sm text-gray-400 dark:text-gray-400 text-gray-600")}>
-              <span>5s</span>
-              <span className={cn("font-medium text-white dark:text-white text-gray-900")}>{duration}s</span>
-              <span>60s</span>
+            <div className="space-y-4">
+              <Slider
+                value={[duration]}
+                onValueChange={([value]) => onDurationChange(value)}
+                min={5}
+                max={120}
+                step={1}
+                className="[&_[data-slot=slider-track]]:bg-gradient-to-r [&_[data-slot=slider-track]]:from-purple-500 [&_[data-slot=slider-track]]:to-cyan-500 [&_[data-slot=slider-thumb]]:bg-blue-500 [&_[data-slot=slider-thumb]]:border-blue-400"
+              />
+              <div className={cn("flex justify-between text-[10px] text-gray-500 dark:text-gray-500 px-1 mt-1")}>
+                <span>5s</span>
+                <span>30s</span>
+                <span>60s</span>
+                <span>90s</span>
+                <span>120s</span>
+              </div>
+              <div className="flex justify-center mt-3">
+                <div className={cn(
+                  "px-4 py-1.5 rounded-full border text-sm font-bold transition-all",
+                  "bg-purple-500/10 border-purple-500/30 text-purple-400 shadow-sm shadow-purple-500/10"
+                )}>
+                  Duration: {duration}s
+                </div>
+              </div>
             </div>
           </div>
-        </div>
         )}
 
         {/* Generate Button - Always visible so users can generate again */}
@@ -176,8 +185,8 @@ export function GeneratePage({
           {isLoading
             ? "Generating..."
             : currentMusic
-            ? "Generate New Music"
-            : "Generate Music"}
+              ? "Generate New Music"
+              : "Generate Music"}
         </Button>
 
         {/* Music Player - Shows when music is generated */}

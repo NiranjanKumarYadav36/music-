@@ -4,17 +4,18 @@ import { createPortal } from 'react-dom';
 interface GenerationModalProps {
   isOpen: boolean;
   progress?: number; // 0-100
+  status?: string;   // Contextual status message
   onClose?: () => void;
 }
 
 export const GenerationModal: React.FC<GenerationModalProps> = ({
   isOpen,
   progress = 0,
+  status = "Initializing generator...",
   onClose,
 }) => {
   const [displayProgress, setDisplayProgress] = useState(0);
   const [displayPercentage, setDisplayPercentage] = useState(0); // Stable percentage for display
-  const [isAnimating, setIsAnimating] = useState(false);
   const [mounted, setMounted] = useState(false);
   const animationFrameRef = useRef<number | null>(null);
   const lastProgressRef = useRef(0);
@@ -44,46 +45,46 @@ export const GenerationModal: React.FC<GenerationModalProps> = ({
       document.body.style.overflow = 'hidden';
     }
 
-      // Smooth animation function using requestAnimationFrame
-      const animate = () => {
-        const targetProgress = Math.max(0, Math.min(100, progress || 0));
-        const current = lastProgressRef.current;
-        
-        // Only update if there's a meaningful difference (avoid micro-oscillations)
-        if (Math.abs(targetProgress - current) > 0.01) {
-          // Smooth interpolation - move towards target gradually
-          const diff = targetProgress - current;
-          const step = diff * 0.08; // Small step for smooth, gradual movement
-          
-          const newProgress = current + step;
-          const finalProgress = Math.abs(diff) < 0.1 ? targetProgress : newProgress;
-          
-          lastProgressRef.current = finalProgress;
-          setDisplayProgress(finalProgress);
-          
-          // Update percentage display only when it changes by at least 1%
-          const newPercentage = Math.floor(finalProgress);
-          if (newPercentage !== lastPercentageRef.current) {
-            lastPercentageRef.current = newPercentage;
-            setDisplayPercentage(newPercentage);
-          }
-        } else if (Math.abs(targetProgress - current) > 0.001) {
-          // Snap to target when very close to avoid infinite tiny updates
-          lastProgressRef.current = targetProgress;
-          setDisplayProgress(targetProgress);
-          
-          const newPercentage = Math.floor(targetProgress);
-          if (newPercentage !== lastPercentageRef.current) {
-            lastPercentageRef.current = newPercentage;
-            setDisplayPercentage(newPercentage);
-          }
+    // Smooth animation function using requestAnimationFrame
+    const animate = () => {
+      const targetProgress = Math.max(0, Math.min(100, progress || 0));
+      const current = lastProgressRef.current;
+
+      // Only update if there's a meaningful difference (avoid micro-oscillations)
+      if (Math.abs(targetProgress - current) > 0.01) {
+        // Smooth interpolation - move towards target gradually
+        const diff = targetProgress - current;
+        const step = diff * 0.08; // Small step for smooth, gradual movement
+
+        const newProgress = current + step;
+        const finalProgress = Math.abs(diff) < 0.1 ? targetProgress : newProgress;
+
+        lastProgressRef.current = finalProgress;
+        setDisplayProgress(finalProgress);
+
+        // Update percentage display only when it changes by at least 1%
+        const newPercentage = Math.floor(finalProgress);
+        if (newPercentage !== lastPercentageRef.current) {
+          lastPercentageRef.current = newPercentage;
+          setDisplayPercentage(newPercentage);
         }
-        
-        animationFrameRef.current = requestAnimationFrame(animate);
-      };
+      } else if (Math.abs(targetProgress - current) > 0.001) {
+        // Snap to target when very close to avoid infinite tiny updates
+        lastProgressRef.current = targetProgress;
+        setDisplayProgress(targetProgress);
+
+        const newPercentage = Math.floor(targetProgress);
+        if (newPercentage !== lastPercentageRef.current) {
+          lastPercentageRef.current = newPercentage;
+          setDisplayPercentage(newPercentage);
+        }
+      }
+
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
 
     animationFrameRef.current = requestAnimationFrame(animate);
-    
+
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -95,7 +96,7 @@ export const GenerationModal: React.FC<GenerationModalProps> = ({
   }, [isOpen, progress]);
 
   if (!isOpen || !mounted) return null;
-  
+
   // Safety check for document.body
   if (typeof document === 'undefined' || !document.body) return null;
 
@@ -156,14 +157,16 @@ export const GenerationModal: React.FC<GenerationModalProps> = ({
         </div>
 
         {/* Main Text */}
-        <h2 className="text-2xl font-bold text-center text-gray-800 dark:text-zinc-100 mb-2 animate-text-fade">
-          Generating your music...
+        <h2 className="text-2xl font-bold text-center bg-gradient-to-r from-gray-800 to-gray-600 dark:from-zinc-100 dark:to-zinc-300 bg-clip-text text-transparent mb-2 animate-text-fade">
+          MusicGen Studio
         </h2>
 
-        {/* Sub-text */}
-        <p className="text-sm text-center text-gray-500 dark:text-zinc-400 mb-8 animate-text-fade-delay">
-          This may take a few moments
-        </p>
+        {/* Dynamic Status Message */}
+        <div className="h-12 flex items-center justify-center mb-4">
+          <p className="text-md font-medium text-center text-purple-500 dark:text-purple-400 animate-pulse transition-all duration-500">
+            {status}
+          </p>
+        </div>
 
         {/* Progress Bar */}
         <div className="mb-4">
