@@ -1,15 +1,16 @@
+import { Play, Pause, Download, Settings } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { Play, Pause, Download, Settings, Music } from "lucide-react";
-import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import type { MusicTrack } from "./MusicGenerator/types";
+import { GlassPanel } from "./ui/GlassPanel";
 
 interface MusicPlayerProps {
   track: MusicTrack | null;
   onEdit?: () => void;
+  className?: string;
 }
 
-export function MusicPlayer({ track, onEdit }: MusicPlayerProps) {
+export function MusicPlayer({ track, onEdit, className }: MusicPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -72,111 +73,82 @@ export function MusicPlayer({ track, onEdit }: MusicPlayerProps) {
   if (!track || !track.audioUrl) return null;
 
   return (
-    <div
-      className={cn(
-        "backdrop-blur-md rounded-2xl p-6 border shadow-xl",
-        "transition-all duration-500 ease-in-out",
-        "animate-in fade-in slide-in-from-bottom-4",
-        "bg-white/5 dark:bg-white/5 bg-white/95 shadow-lg",
-        "border-white/10 dark:border-white/10 border-gray-300"
-      )}
-    >
+    <GlassPanel className={cn(
+      "p-3 pr-6 relative group border-white/20 transition-all duration-500",
+      className
+    )}>
       {/* Hidden audio element */}
       <audio ref={audioRef} src={track.audioUrl} preload="metadata" />
 
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 bg-gradient-to-br from-purple-500/20 to-cyan-500/20 rounded-lg">
-          <Music className="w-5 h-5 text-purple-400 dark:text-purple-400" />
+      <div className="flex items-center gap-6">
+        {/* Vinyl-style Disc Icon */}
+        <div className="relative overflow-visible">
+          <div className={cn(
+            "w-14 h-14 rounded-full bg-zinc-900 border-2 border-white/5 flex items-center justify-center transition-transform duration-[2000ms] ring-1 ring-white/10",
+            isPlaying ? "animate-spin" : ""
+          )}>
+            <div className="w-4 h-4 rounded-full bg-purple-500/20 border border-purple-500/50 flex items-center justify-center">
+              <div className="w-1.5 h-1.5 rounded-full bg-white/40" />
+            </div>
+          </div>
+          {/* Disc Glow */}
+          <div className={cn(
+            "absolute inset-0 bg-purple-500/20 blur-2xl rounded-full transition-opacity duration-1000",
+            isPlaying ? "opacity-100" : "opacity-0"
+          )} />
         </div>
-        <div className="flex-1 min-w-0">
-          <h3 className={cn("text-lg font-semibold truncate text-white dark:text-white text-gray-900")}>
-            {track.prompt}
-          </h3>
-          <p className={cn("text-sm text-gray-400 dark:text-gray-400 text-gray-600")}>
-            {track.duration} • {track.date}
+
+        {/* Info & Duration */}
+        <div className="flex-1 min-w-0 pr-6 border-r border-white/5">
+          <div className="flex items-center gap-3 mb-1">
+            <h3 className="text-sm font-bold truncate text-white uppercase tracking-wider">
+              {track.prompt}
+            </h3>
             {track.isEdited && (
-              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                Refined ✨
+              <span className="text-[10px] uppercase tracking-widest font-black text-purple-400">
+                Studio Edit
               </span>
             )}
-          </p>
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="flex-1 max-w-[200px] h-1 bg-white/5 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-purple-500 to-cyan-500 transition-all duration-300"
+                style={{ width: duration > 0 ? `${(currentTime / duration) * 100}%` : "0%" }}
+              />
+            </div>
+            <div className="text-[10px] font-mono text-white/40 min-w-[60px] text-right">
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Progress Bar */}
-      <div className="mb-4">
-        <div className={cn("w-full h-1.5 rounded-full overflow-hidden bg-white/10 dark:bg-white/10 bg-gray-200")}>
-          <div
-            className="h-full bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full transition-all duration-300"
-            style={{
-              width: duration > 0 ? `${(currentTime / duration) * 100}%` : "0%",
-            }}
-          />
-        </div>
-        <div className={cn("flex justify-between text-xs mt-2 text-gray-400 dark:text-gray-400 text-gray-600")}>
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(duration)}</span>
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="flex items-center gap-3">
-        <Button
-          onClick={handlePlayPause}
-          className={cn(
-            "flex-1 h-12 rounded-xl font-semibold text-white",
-            "bg-gradient-to-r from-purple-500 to-cyan-500",
-            "hover:from-purple-600 hover:to-cyan-600",
-            "transition-all duration-200 shadow-lg shadow-purple-500/30"
-          )}
-        >
-          {isPlaying ? (
-            <>
-              <Pause className="w-5 h-5 mr-2" />
-              Pause
-            </>
-          ) : (
-            <>
-              <Play className="w-5 h-5 mr-2" />
-              Play
-            </>
-          )}
-        </Button>
-
-        <Button
-          onClick={handleDownload}
-          variant="outline"
-          className={cn(
-            "h-12 px-6 rounded-xl transition-all duration-200 border-2",
-            "border-white/20 dark:border-white/20 border-gray-300",
-            "bg-white/5 dark:bg-white/5 bg-gray-100",
-            "hover:bg-white/10 dark:hover:bg-white/10 hover:bg-purple-100 hover:border-purple-400",
-            "text-white dark:text-white text-gray-800 font-medium hover:shadow-md"
-          )}
-        >
-          <Download className="w-5 h-5 mr-2" />
-          Download
-        </Button>
-
-        {onEdit && (
-          <Button
-            onClick={onEdit}
-            variant="outline"
-            className={cn(
-              "h-12 px-6 rounded-xl transition-all duration-200 border-2",
-              "border-white/20 dark:border-white/20 border-gray-300",
-              "bg-white/5 dark:bg-white/5 bg-gray-100",
-              "hover:bg-white/10 dark:hover:bg-white/10 hover:bg-purple-100 hover:border-purple-400",
-              "text-white dark:text-white text-gray-800 font-medium hover:shadow-md"
-            )}
+        {/* Controls Overlay */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handlePlayPause}
+            className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white text-black hover:scale-105 active:scale-95 transition-all shadow-[0_4px_16px_rgba(255,255,255,0.1)]"
           >
-            <Settings className="w-5 h-5 mr-2" />
-            Edit
-          </Button>
-        )}
+            {isPlaying ? <Pause className="fill-current w-5 h-5" /> : <Play className="fill-current w-5 h-5 ml-1" />}
+          </button>
+
+          <button
+            onClick={handleDownload}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all"
+          >
+            <Download className="w-4 h-4" />
+          </button>
+
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all ml-1"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+    </GlassPanel>
   );
 }
-

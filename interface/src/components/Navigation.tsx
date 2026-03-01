@@ -1,89 +1,100 @@
-import { Music, Sparkles, History, Sun, Moon } from "lucide-react";
-import { Button } from "./ui/button";
+import { Music, LayoutGrid, Palette, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GlassPanel } from "./ui/GlassPanel";
 
 interface NavigationProps {
   currentPage: "generate" | "history";
   onPageChange: (page: "generate" | "history") => void;
   isDark: boolean;
   onThemeToggle: () => void;
-  onLogoClick?: () => void;
+  onLogoClick: () => void;
 }
 
 export function Navigation({
   currentPage,
   onPageChange,
-  isDark,
   onThemeToggle,
   onLogoClick,
 }: NavigationProps) {
   return (
-    <nav className={cn(
-      "w-full px-6 py-4 border-b backdrop-blur-md sticky top-0 z-50 transition-colors duration-300",
-      "border-white/10 dark:border-white/10 border-gray-300",
-      "bg-black/30 dark:bg-black/30 bg-white/95 shadow-sm",
-      "text-white dark:text-white text-gray-900"
-    )}>
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Logo */}
+    <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] w-fit">
+      <GlassPanel className="p-2 flex items-center gap-1">
+        {/* Composition Icon/Logo */}
         <button
           onClick={onLogoClick}
-          className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
+          className="group relative p-3 rounded-xl hover:bg-white/10 transition-all duration-300"
         >
           <div className="relative">
-            <Music className={cn("w-6 h-6 text-purple-400 dark:text-purple-400")} />
-            <Sparkles className={cn("w-3 h-3 text-purple-500 dark:text-purple-500 absolute -top-1 -right-1")} />
+            <Sparkles className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
+            <div className="absolute inset-0 bg-purple-500/20 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
-          <span className="text-xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
-            MusicGen
-          </span>
         </button>
 
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            onClick={() => onPageChange("generate")}
-            className={cn(
-              "px-4 py-2 rounded-lg transition-all",
-              currentPage === "generate"
-                ? "bg-white/10 dark:bg-white/10 bg-purple-100 dark:text-white text-purple-700 backdrop-blur-sm shadow-sm"
-                : "text-gray-400 dark:text-gray-400 text-gray-700 hover:text-white dark:hover:text-white hover:text-purple-700 hover:bg-white/5 dark:hover:bg-white/5 hover:bg-purple-50"
-            )}
-          >
-            Generate
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => onPageChange("history")}
-            className={cn(
-              "px-4 py-2 rounded-lg transition-all flex items-center gap-2",
-              currentPage === "history"
-                ? "bg-white/10 dark:bg-white/10 bg-pink-100 dark:text-white text-pink-700 backdrop-blur-sm border-b-2 border-pink-500 shadow-sm"
-                : "text-gray-400 dark:text-gray-400 text-gray-700 hover:text-white dark:hover:text-white hover:text-pink-700 hover:bg-white/5 dark:hover:bg-white/5 hover:bg-pink-50"
-            )}
-          >
-            <History className="w-4 h-4" />
-            History
-          </Button>
-        </div>
+        <div className="w-px h-6 bg-white/10 mx-2" />
 
-        {/* Theme Toggle */}
-        <Button
-          variant="ghost"
-          size="icon"
+        {/* Navigation Items */}
+        <nav className="flex items-center gap-1">
+          <NavLink
+            active={currentPage === "generate"}
+            onClick={() => onPageChange("generate")}
+            icon={<Palette className="w-4 h-4" />}
+            label="Studio"
+          />
+          <NavLink
+            active={currentPage === "history"}
+            onClick={() => onPageChange("history")}
+            icon={<Music className="w-4 h-4" />}
+            label="Library"
+          />
+        </nav>
+
+        <div className="w-px h-6 bg-white/10 mx-2" />
+
+        {/* System Controls */}
+        <button
           onClick={onThemeToggle}
-          className={cn(
-            "rounded-lg transition-all",
-            "text-gray-400 dark:text-gray-400 text-gray-700",
-            "hover:text-white dark:hover:text-white hover:text-purple-700",
-            "hover:bg-white/5 dark:hover:bg-white/5 hover:bg-purple-50"
-          )}
+          className="p-3 rounded-xl hover:bg-white/10 text-white/40 hover:text-white transition-all"
         >
-          {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-        </Button>
-      </div>
-    </nav>
+          <LayoutGrid className="w-4 h-4" />
+        </button>
+      </GlassPanel>
+    </div>
   );
 }
 
+function NavLink({
+  active,
+  onClick,
+  icon,
+  label
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "relative flex items-center gap-3 px-5 py-2.5 rounded-xl transition-all duration-500 overflow-hidden",
+        active
+          ? "bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.05)] border border-white/10"
+          : "text-white/40 hover:text-white/80 hover:bg-white/5 border border-transparent"
+      )}
+    >
+      <span className={cn(
+        "transition-transform duration-500",
+        active ? "scale-110" : "scale-100"
+      )}>
+        {icon}
+      </span>
+      <span className="text-xs font-bold uppercase tracking-widest">{label}</span>
+
+      {/* Active Indicator Glow */}
+      {active && (
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-gradient-to-r from-purple-500 to-cyan-500 blur-[2px]" />
+      )}
+    </button>
+  );
+}

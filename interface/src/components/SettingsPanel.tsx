@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Info, RotateCcw } from "lucide-react";
+import { Info, RotateCcw, Sliders, AudioWaveform } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -58,273 +58,111 @@ export function SettingsPanel({
   isLoading = false,
   compact = false,
 }: SettingsPanelProps) {
-  const [showAdvanced, setShowAdvanced] = useState(true);
-  const [showAudioEffects, setShowAudioEffects] = useState(true);
-
   return (
-    <div className={cn(
-      "backdrop-blur-md rounded-2xl border shadow-xl transition-all duration-300 ease-in-out",
-      "bg-white/5 dark:bg-white/5 bg-white/95 shadow-lg",
-      "border-white/10 dark:border-white/10 border-gray-300",
-      compact && "p-4"
-    )}>
-      {/* Advanced Settings */}
-      <div className={cn(!compact && "mb-4")}>
-        <button
-          onClick={() => setShowAdvanced(!showAdvanced)}
-          className={cn(
-            "w-full p-4 flex items-center justify-between rounded-t-2xl transition-colors",
-            "text-white dark:text-white text-gray-900",
-            "hover:bg-white/5 dark:hover:bg-white/5 hover:bg-gray-100",
-            compact && "p-3 rounded-xl"
-          )}
-        >
-          <span className="font-semibold flex items-center gap-2">
-            <Info className="w-4 h-4" />
-            Advanced Settings
-          </span>
-          <span className={cn("text-gray-400 dark:text-gray-400 text-gray-600")}>
-            {showAdvanced ? "▲" : "▼"}
-          </span>
-        </button>
-        {showAdvanced && (
-          <div className={cn("p-4 pt-0 space-y-4", compact && "p-3 pt-0")}>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                // Reset all advanced generation settings to their new defaults
-                onTemperatureChange(1);
-                onCfgCoefChange(8);
-                onTopKChange(250);
-                onTopPChange(0.7);
-              }}
-              className={cn(
-                "text-xs mb-2",
-                "text-gray-400 dark:text-gray-400 text-gray-600",
-                "hover:text-white dark:hover:text-white hover:text-gray-900"
-              )}
-            >
-              <RotateCcw className="w-3 h-3 mr-1" />
-              Reset to defaults
-            </Button>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className={cn("text-xs text-gray-400 dark:text-gray-400 text-gray-600")}>Temperature</Label>
-                <Input
-                  type="number"
-                  value={isNaN(temperature) ? '' : temperature}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
-                    if (!isNaN(val)) onTemperatureChange(val);
-                  }}
-                  min={0.1}
-                  max={2.0}
-                  step={0.1}
-                  className={cn(
-                    "mt-1 border-2",
-                    "bg-black/30 dark:bg-black/30 bg-gray-50",
-                    "border-white/10 dark:border-white/10 border-gray-300",
-                    "text-white dark:text-white text-gray-900",
-                    "focus:border-purple-500 focus:ring-purple-500/20"
-                  )}
-                />
-                <p className={cn("text-xs mt-1 text-gray-500 dark:text-gray-500 text-gray-400")}>0.1 - 2.0</p>
-              </div>
-              <div>
-                <Label className={cn("text-xs text-gray-400 dark:text-gray-400 text-gray-600")}>CFG Coefficient</Label>
-                <Input
-                  type="number"
-                  value={isNaN(cfgCoef) ? '' : cfgCoef}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
-                    if (!isNaN(val)) onCfgCoefChange(val);
-                  }}
-                  min={1.0}
-                  max={10.0}
-                  step={0.1}
-                  className={cn(
-                    "mt-1 border-2",
-                    "bg-black/30 dark:bg-black/30 bg-gray-50",
-                    "border-white/10 dark:border-white/10 border-gray-300",
-                    "text-white dark:text-white text-gray-900",
-                    "focus:border-purple-500 focus:ring-purple-500/20"
-                  )}
-                />
-                <p className={cn("text-xs mt-1 text-gray-500 dark:text-gray-500 text-gray-400")}>1.0 - 10.0</p>
-              </div>
-              <div>
-                <Label className={cn("text-xs text-gray-400 dark:text-gray-400 text-gray-600")}>Top-K</Label>
-                <Input
-                  type="number"
-                  value={isNaN(topK) ? '' : topK}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value);
-                    if (!isNaN(val)) onTopKChange(val);
-                  }}
-                  min={1}
-                  max={500}
-                  className={cn(
-                    "mt-1 border-2",
-                    "bg-black/30 dark:bg-black/30 bg-gray-50",
-                    "border-white/10 dark:border-white/10 border-gray-300",
-                    "text-white dark:text-white text-gray-900",
-                    "focus:border-purple-500 focus:ring-purple-500/20"
-                  )}
-                />
-                <p className={cn("text-xs mt-1 text-gray-500 dark:text-gray-500 text-gray-400")}>1 - 500</p>
-              </div>
-              <div>
-                <Label className={cn("text-xs text-gray-400 dark:text-gray-400 text-gray-600")}>Top-P</Label>
-                <Input
-                  type="number"
-                  value={isNaN(topP) ? '' : topP}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
-                    if (!isNaN(val)) onTopPChange(val);
-                  }}
-                  min={0}
-                  max={1.0}
-                  step={0.1}
-                  className={cn(
-                    "mt-1 border-2",
-                    "bg-black/30 dark:bg-black/30 bg-gray-50",
-                    "border-white/10 dark:border-white/10 border-gray-300",
-                    "text-white dark:text-white text-gray-900",
-                    "focus:border-purple-500 focus:ring-purple-500/20"
-                  )}
-                />
-                <p className={cn("text-xs mt-1 text-gray-500 dark:text-gray-500 text-gray-400")}>0.0 - 1.0</p>
-              </div>
-            </div>
-            <div className={cn("pt-2 border-t border-white/10 dark:border-white/10 border-gray-200")}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className={cn("text-sm text-white dark:text-white text-gray-900")}>Use Sampling</Label>
-                  <p className={cn("text-xs text-gray-400 dark:text-gray-400 text-gray-600")}>
-                    Enable probabilistic sampling during generation
-                  </p>
-                </div>
-                <Switch
-                  checked={useSampling}
-                  onCheckedChange={onUseSamplingChange}
-                  className="data-[state=checked]:bg-purple-500"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+    <div className={cn("space-y-12", compact ? "" : "p-6")}>
 
-      {/* Audio Effects */}
-      <div>
-        <div className={cn("p-4 flex items-center justify-between", compact && "p-3")}>
+      {/* Generation Parameters Section */}
+      <section className="space-y-8">
+        <div className="flex items-center justify-between border-b border-white/5 pb-4">
           <div className="flex items-center gap-2">
-            <span className={cn("font-semibold text-white dark:text-white text-gray-900")}>Audio Effects</span>
-            <Info className={cn("w-4 h-4 text-gray-400 dark:text-gray-400 text-gray-600")} />
+            <Sliders className="w-4 h-4 text-purple-400" />
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white">Neural Parameters</h3>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              onTemperatureChange(1);
+              onCfgCoefChange(8);
+              onTopKChange(250);
+              onTopPChange(0);
+            }}
+            className="h-8 text-[10px] uppercase font-bold tracking-widest text-white/20 hover:text-white"
+          >
+            <RotateCcw className="w-3 h-3 mr-2" />
+            Reset
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+          <DetailControl
+            label="Temperature"
+            value={temperature}
+            onChange={onTemperatureChange}
+            min={0.1} max={2.0} step={0.1}
+            desc="Controls randomness in generation. Higher values are more creative but less coherent."
+          />
+          <DetailControl
+            label="CFG Coefficient"
+            value={cfgCoef}
+            onChange={onCfgCoefChange}
+            min={1.0} max={10.0} step={0.1}
+            desc="How closely the engine follows your prompt. Higher is stricter."
+          />
+          <DetailControl
+            label="Top-K"
+            value={topK}
+            onChange={onTopKChange}
+            min={1} max={500} step={1}
+            desc="Limited vocabulary selection for better structural integrity."
+          />
+          <DetailControl
+            label="Top-P"
+            value={topP}
+            onChange={onTopPChange}
+            min={0} max={1.0} step={0.05}
+            desc="Cumulative probability threshold for token sampling."
+          />
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between transition-all hover:bg-white/10">
+          <div className="space-y-1">
+            <Label className="text-sm font-bold text-white uppercase tracking-wider">Neural Sampling</Label>
+            <p className="text-[10px] text-white/40 font-medium max-w-xs">Enable advanced probabilistic analysis for natural sonic transitions.</p>
+          </div>
+          <Switch
+            checked={useSampling}
+            onCheckedChange={onUseSamplingChange}
+            className="data-[state=checked]:bg-purple-500"
+          />
+        </div>
+      </section>
+
+      {/* Audio Processing Section */}
+      <section className="space-y-8">
+        <div className="flex items-center justify-between border-b border-white/5 pb-4">
+          <div className="flex items-center gap-2">
+            <AudioWaveform className="w-4 h-4 text-cyan-400" />
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-white">Digital Signal Processing</h3>
           </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={onResetEffects}
-            className={cn(
-              "text-xs",
-              "text-gray-400 dark:text-gray-400 text-gray-600",
-              "hover:text-white dark:hover:text-white hover:text-gray-900"
-            )}
+            className="h-8 text-[10px] uppercase font-bold tracking-widest text-white/20 hover:text-white"
           >
-            <RotateCcw className="w-3 h-3 mr-1" />
+            <RotateCcw className="w-3 h-3 mr-2" />
             Reset
           </Button>
         </div>
-        <button
-          onClick={() => setShowAudioEffects(!showAudioEffects)}
-          className={cn(
-            "w-full px-4 pb-2 flex items-center justify-end text-xs",
-            "text-gray-400 dark:text-gray-400 text-gray-600",
-            compact && "px-3"
-          )}
-        >
-          {showAudioEffects ? "▲" : "▼"}
-        </button>
-        {showAudioEffects && (
-          <div className={cn("p-4 pt-0 space-y-4", compact && "p-3 pt-0")}>
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <Label className={cn("text-sm text-white dark:text-white text-gray-900")}>Reverb</Label>
-                <span className={cn("text-sm text-white dark:text-white text-gray-900")}>{reverb}%</span>
-              </div>
-              <Slider
-                value={[reverb]}
-                onValueChange={([value]) => onReverbChange(value)}
-                min={0}
-                max={100}
-                className="[&_[data-slot=slider-track]]:bg-gradient-to-r [&_[data-slot=slider-track]]:from-purple-500 [&_[data-slot=slider-track]]:to-cyan-500 [&_[data-slot=slider-thumb]]:bg-blue-500"
-              />
-            </div>
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <Label className={cn("text-sm text-white dark:text-white text-gray-900")}>Bass Boost</Label>
-                <span className={cn("text-sm text-white dark:text-white text-gray-900")}>{bassBoost}%</span>
-              </div>
-              <Slider
-                value={[bassBoost]}
-                onValueChange={([value]) => onBassBoostChange(value)}
-                min={0}
-                max={100}
-                className="[&_[data-slot=slider-track]]:bg-gradient-to-r [&_[data-slot=slider-track]]:from-purple-500 [&_[data-slot=slider-track]]:to-cyan-500 [&_[data-slot=slider-thumb]]:bg-blue-500"
-              />
-            </div>
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <Label className={cn("text-sm text-white dark:text-white text-gray-900")}>Treble</Label>
-                <span className={cn("text-sm text-white dark:text-white text-gray-900")}>{treble}%</span>
-              </div>
-              <Slider
-                value={[treble]}
-                onValueChange={([value]) => onTrebleChange(value)}
-                min={0}
-                max={100}
-                className="[&_[data-slot=slider-track]]:bg-gradient-to-r [&_[data-slot=slider-track]]:from-purple-500 [&_[data-slot=slider-track]]:to-cyan-500 [&_[data-slot=slider-thumb]]:bg-blue-500"
-              />
-            </div>
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <Label className={cn("text-sm text-white dark:text-white text-gray-900")}>Speed</Label>
-                <span className={cn("text-sm text-white dark:text-white text-gray-900")}>{speed.toFixed(1)}x</span>
-              </div>
-              <Slider
-                value={[speed]}
-                onValueChange={([value]) => onSpeedChange(value)}
-                min={0.5}
-                max={2.0}
-                step={0.1}
-                className="[&_[data-slot=slider-track]]:bg-gradient-to-r [&_[data-slot=slider-track]]:from-purple-500 [&_[data-slot=slider-track]]:to-cyan-500 [&_[data-slot=slider-thumb]]:bg-blue-500"
-              />
-              <div className={cn("flex justify-between text-xs mt-1 text-gray-500 dark:text-gray-500 text-gray-400")}>
-                <span>0.5x</span>
-                <span>2.0x</span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
 
-      {/* Apply Edit Button - Only show if onApplyEdit is provided */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          <SliderControl label="Reverb Intensity" value={reverb} onChange={onReverbChange} unit="%" />
+          <SliderControl label="Bass Amplification" value={bassBoost} onChange={onBassBoostChange} unit="%" />
+          <SliderControl label="Treble Presence" value={treble} onChange={onTrebleChange} unit="%" />
+          <SliderControl label="Playback Rate" value={speed} onChange={onSpeedChange} min={0.5} max={2.0} step={0.1} unit="x" />
+        </div>
+      </section>
+
+      {/* Persistence Controls */}
       {onApplyEdit && (
-        <div className={cn("mt-4 pt-4 border-t border-white/10 dark:border-white/10 border-gray-200", compact && "mt-3 pt-3")}>
+        <div className="pt-8 border-t border-white/5">
           <Button
             onClick={onApplyEdit}
             disabled={isLoading}
-            className={cn(
-              "w-full h-12 text-base font-semibold rounded-xl text-white",
-              "bg-gradient-to-r from-purple-500 to-cyan-500",
-              "hover:from-purple-600 hover:to-cyan-600",
-              "disabled:opacity-50 disabled:cursor-not-allowed",
-              "transition-all duration-200 shadow-lg shadow-purple-500/30"
-            )}
+            className="w-full h-14 rounded-2xl bg-white text-black text-sm font-black uppercase tracking-[0.2em] hover:bg-white/90 disabled:opacity-50 transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)]"
           >
-            {isLoading ? "Applying Changes..." : "Apply Changes"}
+            {isLoading ? "Synchronizing Engine..." : "Manifest Studio changes"}
           </Button>
         </div>
       )}
@@ -332,3 +170,45 @@ export function SettingsPanel({
   );
 }
 
+function DetailControl({
+  label, value, onChange, min, max, step, desc
+}: {
+  label: string; value: number; onChange: (v: number) => void; min: number; max: number; step: number; desc: string;
+}) {
+  return (
+    <div className="space-y-3 group">
+      <div className="flex items-end justify-between">
+        <Label className="text-[10px] font-black uppercase tracking-[0.15em] text-white/60 group-hover:text-white transition-colors">{label}</Label>
+        <div className="text-xs font-mono text-purple-400 font-bold">{value.toFixed(1)}</div>
+      </div>
+      <Slider
+        value={[value]}
+        onValueChange={([v]) => onChange(v)}
+        min={min} max={max} step={step}
+        className="[&_[data-slot=slider-track]]:h-1 [&_[data-slot=slider-track]]:bg-white/5 [&_[data-slot=slider-range]]:bg-purple-500/50 [&_[data-slot=slider-thumb]]:w-4 [&_[data-slot=slider-thumb]]:h-4 [&_[data-slot=slider-thumb]]:bg-purple-500 [&_[data-slot=slider-thumb]]:border-none"
+      />
+      <p className="text-[9px] text-white/20 font-medium uppercase tracking-wider transition-opacity group-hover:opacity-100 opacity-60 leading-relaxed">{desc}</p>
+    </div>
+  );
+}
+
+function SliderControl({
+  label, value, onChange, min = 0, max = 100, step = 1, unit
+}: {
+  label: string; value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number; unit?: string;
+}) {
+  return (
+    <div className="space-y-3 group">
+      <div className="flex items-end justify-between">
+        <Label className="text-[10px] font-black uppercase tracking-[0.15em] text-white/60 group-hover:text-white transition-colors">{label}</Label>
+        <div className="text-xs font-mono text-cyan-400 font-bold">{value.toFixed(1)}{unit}</div>
+      </div>
+      <Slider
+        value={[value]}
+        onValueChange={([v]) => onChange(v)}
+        min={min} max={max} step={step}
+        className="[&_[data-slot=slider-track]]:h-1 [&_[data-slot=slider-track]]:bg-white/5 [&_[data-slot=slider-range]]:bg-cyan-500/50 [&_[data-slot=slider-thumb]]:w-4 [&_[data-slot=slider-thumb]]:h-4 [&_[data-slot=slider-thumb]]:bg-cyan-500 [&_[data-slot=slider-thumb]]:border-none"
+      />
+    </div>
+  );
+}

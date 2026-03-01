@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Music, Sparkles, ChevronDown, Check } from "lucide-react";
+import { Music, Trash2, Calendar, Timer, ListFilter, Check } from "lucide-react";
 import { Button } from "./ui/button";
 import { MusicPlayer } from "./MusicPlayer";
 import { SettingsPanel } from "./SettingsPanel";
 import { cn } from "@/lib/utils";
 import type { MusicTrack } from "./MusicGenerator/types";
+import { GlassPanel } from "./ui/GlassPanel";
 
 interface HistoryPageProps {
   musicHistory: MusicTrack[];
@@ -43,7 +44,6 @@ export function HistoryPage({
   selectedMusic,
   onSelectMusic,
   onDeleteMusic,
-  onEditClick,
   temperature,
   onTemperatureChange,
   cfgCoef,
@@ -80,9 +80,7 @@ export function HistoryPage({
       case "oldest-first":
         return a.id - b.id;
       case "longest-duration":
-        const aDuration = parseInt(a.duration);
-        const bDuration = parseInt(b.duration);
-        return bDuration - aDuration;
+        return (parseInt(b.duration) || 0) - (parseInt(a.duration) || 0);
       case "most-recent":
       default:
         return b.id - a.id;
@@ -96,203 +94,160 @@ export function HistoryPage({
   ];
 
   return (
-    <div className="flex-1 overflow-y-auto h-full">
-      <div className="max-w-6xl mx-auto w-full p-6 pb-8">
-        {/* Main Container */}
-        <div className={cn(
-          "backdrop-blur-md rounded-3xl p-8 border shadow-2xl transition-colors duration-300",
-          "bg-gradient-to-br from-white/10 via-purple-500/10 to-cyan-500/10",
-          "dark:bg-gradient-to-br dark:from-white/10 dark:via-purple-500/10 dark:to-cyan-500/10",
-          "bg-gradient-to-br from-white via-purple-50/30 to-cyan-50/30 shadow-xl",
-          "border-white/20 dark:border-white/20 border-gray-300"
-        )}>
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-4xl font-bold mb-2">
-                <span className="text-purple-400 dark:text-purple-400">Your</span>{" "}
-                <span className="bg-gradient-to-r from-pink-400 to-cyan-400 bg-clip-text text-transparent">
-                  Creations
-                </span>
-                <Sparkles className="w-5 h-5 inline-block ml-2 text-purple-400 dark:text-purple-400" />
-              </h1>
-              <p className={cn("text-gray-400 dark:text-gray-400 text-gray-600")}>
-                {musicHistory.length} track{musicHistory.length !== 1 ? "s" : ""} in your library
-              </p>
-            </div>
+    <div className="h-full w-full overflow-y-auto px-6 py-32 lg:px-12 scrollbar-none">
+      <div className="max-w-7xl mx-auto space-y-12">
 
-            {/* Sort Dropdown */}
-            <div className="relative">
-              <Button
-                variant="outline"
+        {/* Gallery Header */}
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 px-4">
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold tracking-[0.2em] text-cyan-400 uppercase">
+              Storage / Active Library
+            </div>
+            <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight">
+              Vault of <span className="text-white/40">Creations</span>
+            </h1>
+
+            {/* Sort Controls */}
+            <div className="relative pt-2">
+              <button
                 onClick={() => setShowDropdown(!showDropdown)}
-                className={cn(
-                  "min-w-[150px] justify-between transition-colors duration-200 border-2",
-                  "bg-white/5 dark:bg-white/5 bg-gray-100",
-                  "border-white/20 dark:border-white/20 border-gray-300",
-                  "text-white dark:text-white text-gray-800 font-medium",
-                  "hover:bg-white/10 dark:hover:bg-white/10 hover:bg-purple-100 hover:border-purple-400 hover:shadow-md"
-                )}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 text-[10px] font-bold uppercase tracking-widest transition-all"
               >
-                {sortOptions.find((opt) => opt.value === sortBy)?.label}
-                <ChevronDown className="w-4 h-4 ml-2" />
-              </Button>
+                <ListFilter className="w-3 h-3 text-purple-400" />
+                Sort: {sortOptions.find(o => o.value === sortBy)?.label}
+              </button>
+
               {showDropdown && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setShowDropdown(false)}
-                  />
-                  <div className={cn(
-                    "absolute right-0 mt-2 w-48 backdrop-blur-md rounded-xl border shadow-xl z-20 border-2",
-                    "bg-black/90 dark:bg-black/90 bg-white shadow-lg",
-                    "border-white/20 dark:border-white/20 border-gray-300"
-                  )}>
-                    {sortOptions.map((option) => (
+                <div className="absolute top-full left-0 mt-2 w-48 z-20 animate-in fade-in zoom-in-95 duration-200">
+                  <GlassPanel className="p-1 flex flex-col">
+                    {sortOptions.map(opt => (
                       <button
-                        key={option.value}
-                        onClick={() => {
-                          setSortBy(option.value);
-                          setShowDropdown(false);
-                        }}
+                        key={opt.value}
+                        onClick={() => { setSortBy(opt.value); setShowDropdown(false); }}
                         className={cn(
-                          "w-full px-4 py-3 text-left text-sm transition-colors flex items-center justify-between",
-                          sortBy === option.value
-                            ? "bg-pink-500/30 dark:bg-pink-500/30 bg-pink-100 text-white dark:text-white text-gray-900"
-                            : "text-gray-300 dark:text-gray-300 text-gray-700 hover:bg-white/10 dark:hover:bg-white/10 hover:bg-gray-100"
+                          "w-full px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest flex items-center justify-between rounded-lg transition-colors",
+                          sortBy === opt.value ? "bg-white/10 text-white" : "text-white/40 hover:text-white/60 hover:bg-white/5"
                         )}
                       >
-                        {option.label}
-                        {sortBy === option.value && (
-                          <Check className="w-4 h-4 text-pink-400 dark:text-pink-400" />
-                        )}
+                        {opt.label}
+                        {sortBy === opt.value && <Check className="w-3 h-3 text-purple-400" />}
                       </button>
                     ))}
-                  </div>
-                </>
+                  </GlassPanel>
+                </div>
               )}
             </div>
           </div>
 
-          {/* Selected Music Player */}
+          {/* Player for selected music */}
           {selectedMusic && (
-            <div className="mb-6 transition-all duration-500 ease-in-out animate-in fade-in slide-in-from-top-4">
+            <div className="flex-1 max-w-xl animate-in fade-in slide-in-from-right duration-500">
               <MusicPlayer
                 track={selectedMusic}
                 onEdit={() => setShowEditPanel(!showEditPanel)}
+                className="bg-white/5 border-white/10"
               />
-            </div>
-          )}
-
-          {/* Settings Panel - Shows inline when edit is clicked */}
-          {showEditPanel && selectedMusic && (
-            <div className="mb-6 transition-all duration-300 ease-in-out animate-in fade-in slide-in-from-bottom-4">
-              <SettingsPanel
-                temperature={temperature}
-                onTemperatureChange={onTemperatureChange}
-                cfgCoef={cfgCoef}
-                onCfgCoefChange={onCfgCoefChange}
-                topK={topK}
-                onTopKChange={onTopKChange}
-                topP={topP}
-                onTopPChange={onTopPChange}
-                useSampling={useSampling}
-                onUseSamplingChange={onUseSamplingChange}
-                reverb={reverb}
-                onReverbChange={onReverbChange}
-                bassBoost={bassBoost}
-                onBassBoostChange={onBassBoostChange}
-                treble={treble}
-                onTrebleChange={onTrebleChange}
-                speed={speed}
-                onSpeedChange={onSpeedChange}
-                onResetEffects={onResetEffects}
-                onApplyEdit={() => {
-                  onApplyEdit();
-                  setShowEditPanel(false);
-                }}
-                isLoading={isLoading}
-                compact={true}
-              />
-            </div>
-          )}
-
-          {/* Content */}
-          {musicHistory.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <div className="relative mb-6">
-                <div className={cn(
-                  "w-32 h-32 rounded-full backdrop-blur-md flex items-center justify-center border",
-                  "bg-gradient-to-br from-purple-500/20 to-cyan-500/20",
-                  "dark:bg-gradient-to-br dark:from-purple-500/20 dark:to-cyan-500/20",
-                  "bg-gradient-to-br from-purple-100/50 to-cyan-100/50",
-                  "border-white/20 dark:border-white/20 border-gray-200"
-                )}>
-                  <Music className="w-16 h-16 text-purple-400 dark:text-purple-400" />
-                </div>
-              </div>
-              <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
-                Your library is empty
-              </h2>
-              <p className={cn("text-center max-w-md text-gray-400 dark:text-gray-400 text-gray-600")}>
-                Start creating amazing tracks and they'll appear here
-                <Sparkles className="w-4 h-4 inline-block ml-1 text-yellow-400 dark:text-yellow-400" />
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
-              {sortedHistory.map((track) => (
-                <div
-                  key={track.id}
-                  className={cn(
-                    "backdrop-blur-md rounded-xl p-4 border transition-all cursor-pointer group border-2",
-                    "bg-white/5 dark:bg-white/5 bg-white shadow-md",
-                    selectedMusic?.id === track.id
-                      ? "border-purple-500 dark:border-purple-500/50 border-purple-500 shadow-lg shadow-purple-500/30 dark:shadow-purple-500/20 bg-purple-50"
-                      : "border-white/10 dark:border-white/10 border-gray-300 hover:border-purple-300 dark:hover:border-white/20 hover:shadow-lg"
-                  )}
-                  onClick={() => onSelectMusic(track)}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1 min-w-0">
-                      <h3 className={cn("font-semibold truncate mb-1 text-white dark:text-white text-gray-900")}>
-                        {track.prompt}
-                      </h3>
-                      <p className={cn("text-xs text-gray-400 dark:text-gray-400 text-gray-600 flex items-center")}>
-                        {track.date}
-                        {track.isEdited && (
-                          <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1">
-                            Refined <Sparkles className="w-2.5 h-2.5" />
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    <span className={cn("text-xs ml-2 text-purple-400 dark:text-purple-400")}>
-                      {track.duration}
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteMusic(track.id);
-                    }}
-                    className={cn(
-                      "mt-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity",
-                      "text-red-400 dark:text-red-400 hover:text-red-300 dark:hover:text-red-300",
-                      "hover:bg-red-500/10 dark:hover:bg-red-500/10"
-                    )}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              ))}
             </div>
           )}
         </div>
+
+        {/* Edit View Overlay (if active) */}
+        {showEditPanel && selectedMusic && (
+          <GlassPanel className="mx-4 p-8 animate-in fade-in zoom-in-95 duration-500">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-xl font-bold">Studio Refinement Portal</h2>
+              <Button variant="ghost" onClick={() => setShowEditPanel(false)} className="h-8 text-white/40 hover:text-white">
+                Cancel Edit
+              </Button>
+            </div>
+            <SettingsPanel
+              temperature={temperature}
+              onTemperatureChange={onTemperatureChange}
+              cfgCoef={cfgCoef}
+              onCfgCoefChange={onCfgCoefChange}
+              topK={topK}
+              onTopKChange={onTopKChange}
+              topP={topP}
+              onTopPChange={onTopPChange}
+              useSampling={useSampling}
+              onUseSamplingChange={onUseSamplingChange}
+              reverb={reverb}
+              onReverbChange={onReverbChange}
+              bassBoost={bassBoost}
+              onBassBoostChange={onBassBoostChange}
+              treble={treble}
+              onTrebleChange={onTrebleChange}
+              speed={speed}
+              onSpeedChange={onSpeedChange}
+              onResetEffects={onResetEffects}
+              onApplyEdit={() => { onApplyEdit(); setShowEditPanel(false); }}
+              isLoading={isLoading}
+              compact={true}
+            />
+          </GlassPanel>
+        )}
+
+        {/* Music Grid */}
+        {musicHistory.length === 0 ? (
+          <div className="h-96 flex flex-col items-center justify-center text-center px-4">
+            <div className="w-20 h-20 rounded-full bg-white/5 border border-white/5 flex items-center justify-center mb-6">
+              <Music className="w-8 h-8 text-white/20" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">Initialize your studio</h3>
+            <p className="text-white/40 max-w-sm">No tracks detected in the vault. Generations will manifest here once initialized.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 px-4 pb-20">
+            {sortedHistory.map((track) => (
+              <GlassPanel
+                key={track.id}
+                className={cn(
+                  "p-6 group cursor-pointer transition-all duration-500 border-white/5 hover:border-white/20",
+                  selectedMusic?.id === track.id ? "bg-white/10 border-white/40 ring-2 ring-white/10" : ""
+                )}
+                onClick={() => onSelectMusic(track)}
+              >
+                <div className="space-y-6">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 border border-white/5 flex items-center justify-center transition-transform group-hover:scale-110">
+                    <Music className="w-4 h-4 text-white" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <h3 className="font-bold text-sm truncate uppercase tracking-widest">{track.prompt}</h3>
+                    <div className="flex items-center gap-4 text-[10px] text-white/40 font-bold uppercase tracking-wider">
+                      <div className="flex items-center gap-1.5 leading-none">
+                        <Calendar className="w-3 h-3" />
+                        {track.date}
+                      </div>
+                      <div className="flex items-center gap-1.5 leading-none">
+                        <Timer className="w-3 h-3" />
+                        {track.duration}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+                    {track.isEdited && (
+                      <span className="text-[9px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-bold uppercase tracking-[0.1em]">
+                        Studio Edit
+                      </span>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteMusic(track.id);
+                      }}
+                      className="ml-auto w-8 h-8 flex items-center justify-center rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </GlassPanel>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 }
-

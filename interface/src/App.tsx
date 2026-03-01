@@ -1,16 +1,15 @@
-import { useState, useEffect } from "react";
 import { Navigation } from "./components/Navigation";
 import { GeneratePage } from "./components/GeneratePage";
 import { HistoryPage } from "./components/HistoryPage";
+import { MusicPlayer } from "./components/MusicPlayer";
 import { GenerationModal } from "./components/MusicGenerator/GenerationModal";
 import { cn } from "./lib/utils";
 import type { MusicTrack, GenerationParameters, PostProcessingParameters } from "./components/MusicGenerator/types";
 import { addTrack, getAllTracks, deleteTrack } from "./lib/db";
 import { API_CONFIG } from "./config";
+import { useState, useEffect } from "react";
 
 const HISTORY_STORAGE_KEY = "musicGenerationHistory";
-
-
 
 const base64ToBlob = (base64: string, mimeType: string): Blob => {
   const byteCharacters = atob(base64);
@@ -216,7 +215,7 @@ function App() {
       };
 
       setCurrentMusic(newMusic);
-      setMusicHistory((prev) => [newMusic, ...prev]);
+      setMusicHistory((prev: MusicTrack[]) => [newMusic, ...prev]);
       setShowEditPanel(false);
 
       setTimeout(() => {
@@ -345,8 +344,8 @@ function App() {
       };
 
       setCurrentMusic(updatedMusic);
-      setMusicHistory((prev) =>
-        prev.map((m) => (m.id === currentMusic.id ? updatedMusic : m))
+      setMusicHistory((prev: MusicTrack[]) =>
+        prev.map((m: MusicTrack) => (m.id === currentMusic.id ? updatedMusic : m))
       );
       setShowEditPanel(false);
 
@@ -372,7 +371,7 @@ function App() {
   const deleteFromHistory = async (id: number) => {
     try {
       await deleteTrack(id);
-      setMusicHistory((prev) => prev.filter((music) => music.id !== id));
+      setMusicHistory((prev: MusicTrack[]) => prev.filter((music: MusicTrack) => music.id !== id));
       if (currentMusic?.id === id) {
         setCurrentMusic(null);
       }
@@ -424,38 +423,28 @@ function App() {
 
   return (
     <div className={cn("min-h-screen", isDark ? "dark" : "")}>
-      <div className={cn(
-        "min-h-screen relative overflow-hidden transition-colors duration-300",
-        "bg-gradient-to-br from-black via-zinc-900 to-black",
-        "dark:bg-gradient-to-br dark:from-black dark:via-zinc-900 dark:to-black",
-        "bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200",
-        "text-white dark:text-white text-gray-900"
-      )}>
-        {/* Background gradient overlay */}
-        <div className={cn(
-          "fixed inset-0 pointer-events-none transition-opacity duration-300",
-          "bg-gradient-to-r from-purple-900/20 via-transparent to-cyan-900/20",
-          "dark:bg-gradient-to-r dark:from-purple-900/20 dark:via-transparent dark:to-cyan-900/20",
-          "bg-gradient-to-r from-purple-300/40 via-transparent to-cyan-300/40"
-        )} />
+      {/* Background Layer */}
+      <div className="fluid-bg" />
 
-        {/* Main Content */}
-        <div className="relative z-10 flex flex-col h-screen overflow-hidden">
-          <Navigation
-            currentPage={currentPage}
-            onPageChange={(page) => {
-              setCurrentPage(page);
-              if (page === "generate") {
-                setShowEditPanel(false);
-              }
-            }}
-            isDark={isDark}
-            onThemeToggle={toggleTheme}
-            onLogoClick={handleLogoClick}
-          />
+      {/* Main Layout Canvas */}
+      <div className="h-screen w-screen flex flex-col relative">
+        <Navigation
+          currentPage={currentPage}
+          onPageChange={(page) => {
+            setCurrentPage(page);
+            if (page === "generate") {
+              setShowEditPanel(false);
+            }
+          }}
+          isDark={isDark}
+          onThemeToggle={toggleTheme}
+          onLogoClick={handleLogoClick}
+        />
 
+        {/* Content Area */}
+        <main className="flex-1 overflow-hidden relative z-0">
           {currentPage === "generate" && (
-            <div className="flex-1 animate-in fade-in overflow-hidden min-h-0">
+            <div className="h-full animate-in fade-in">
               <GeneratePage
                 prompt={generationParams.prompt}
                 onPromptChange={(value) => setGenerationParams({ ...generationParams, prompt: value })}
@@ -504,7 +493,7 @@ function App() {
             </div>
           )}
           {currentPage === "history" && (
-            <div className="flex-1 animate-in fade-in overflow-hidden min-h-0">
+            <div className="h-full animate-in fade-in">
               <HistoryPage
                 musicHistory={musicHistory}
                 selectedMusic={currentMusic}
@@ -549,7 +538,14 @@ function App() {
               />
             </div>
           )}
-        </div>
+        </main>
+
+        {/* Global Music Dock - Only shows when music is active */}
+        {currentMusic && currentPage === "generate" && !showEditPanel && (
+          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-2xl px-6">
+            <MusicPlayer track={currentMusic} onEdit={() => setShowEditPanel(true)} />
+          </div>
+        )}
       </div>
 
       {/* Generation Modal */}

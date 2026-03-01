@@ -1,11 +1,9 @@
-import { Sparkles, Wand2 } from "lucide-react";
+import { Sparkles, Wand2, Timer, Settings2 } from "lucide-react";
 import { Button } from "./ui/button";
-import { Label } from "./ui/label";
 import { Slider } from "./ui/slider";
-import { MusicPlayer } from "./MusicPlayer";
-import { cn } from "@/lib/utils";
 import type { MusicTrack } from "./MusicGenerator/types";
 import { EditSettingsModal } from "./EditSettingsModal";
+import { GlassPanel } from "./ui/GlassPanel";
 
 interface GeneratePageProps {
   prompt: string;
@@ -42,10 +40,10 @@ interface GeneratePageProps {
 }
 
 const quickPrompts = [
-  "Upbeat electronic dance music with synthesizers",
-  "Calm acoustic guitar melody for relaxation",
-  "Epic orchestral soundtrack with drums",
-  "Lo-fi hip hop beats for studying",
+  "Cyberpunk industrial techno",
+  "Ambient ethereal space pads",
+  "Lofi chillhop study beats",
+  "Cinematic orchestral epic",
 ];
 
 export function GeneratePage({
@@ -81,151 +79,128 @@ export function GeneratePage({
 }: GeneratePageProps) {
 
   return (
-    <div className="flex-1 flex gap-6 p-6 overflow-hidden max-w-7xl mx-auto w-full h-full">
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-4 min-h-0">
-        {/* Title Section - Only show when no music is generated */}
-        {!currentMusic && (
-          <div className="space-y-2 animate-in fade-in">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
-              MusicGen Studio
-            </h1>
-            <p className={cn("text-gray-400 dark:text-gray-400 text-gray-600")}>
-              Turn your imagination into music ✨
-            </p>
-          </div>
-        )}
+    <div className="h-full w-full flex flex-col items-center justify-center p-6 lg:p-12 relative overflow-hidden">
+      {/* Background Decorative Elements */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
 
-        {/* Describe your music - Only show when no music or when reset */}
-        {(!currentMusic || !showEditPanel) && (
-          <div className={cn(
-            "backdrop-blur-md rounded-2xl p-6 border shadow-xl transition-colors duration-300",
-            "bg-white/5 dark:bg-white/5 bg-white/95 shadow-lg",
-            "border-white/10 dark:border-white/10 border-gray-300",
-            "animate-in fade-in slide-in-from-bottom-4"
-          )}>
-            <Label className={cn("flex items-center gap-2 mb-4 text-white dark:text-white text-gray-900")}>
-              <Sparkles className="w-4 h-4 text-purple-400 dark:text-purple-400" />
-              Describe your music
-            </Label>
-            <div className="relative">
-              <textarea
-                value={prompt}
-                onChange={(e) => onPromptChange(e.target.value)}
-                placeholder="e.g., Upbeat electronic dance music with synthesizers and heavy bass."
-                maxLength={500}
-                className={cn(
-                  "w-full min-h-[120px] backdrop-blur-sm rounded-xl px-4 py-3 resize-none transition-all",
-                  "bg-black/30 dark:bg-black/30 bg-gray-50 border-2",
-                  "border border-white/10 dark:border-white/10 border-gray-300",
-                  "text-white dark:text-white text-gray-900",
-                  "placeholder:text-gray-500 dark:placeholder:text-gray-500 placeholder:text-gray-500",
-                  "focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 dark:focus:border-purple-500/50 focus:border-purple-500"
-                )}
-              />
-              <div className={cn("absolute bottom-3 right-3 text-xs text-gray-400 dark:text-gray-400 text-gray-500")}>
-                {prompt.length} / 500
+      <div className="w-full max-w-4xl relative z-10 flex flex-col gap-8">
+        {/* Header Hero Section */}
+        <div className="text-center space-y-4 animate-in fade-in slide-in-from-top-8 duration-700">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-purple-400">
+            <Sparkles className="w-3 h-3" />
+            AI Music Synthesis Engine v2.0
+          </div>
+          <h1 className="text-5xl lg:text-7xl font-bold tracking-tight bg-gradient-to-b from-white to-white/40 bg-clip-text text-transparent">
+            Create Masterpieces.
+          </h1>
+          <p className="text-lg text-white/40 max-w-2xl mx-auto">
+            Transform text into high-fidelity neural audio. High-precision
+            composition tailored to your creative vision.
+          </p>
+        </div>
+
+        {/* Central Composition Zone */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mt-4 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
+
+          {/* Main Input Area */}
+          <div className="lg:col-span-8 flex flex-col gap-6">
+            <GlassPanel className="p-1 group transition-all duration-500 focus-within:ring-2 focus-within:ring-purple-500/30">
+              <div className="relative">
+                <textarea
+                  value={prompt}
+                  onChange={(e) => onPromptChange(e.target.value)}
+                  placeholder="Describe your soundscape..."
+                  className="w-full min-h-[160px] bg-transparent border-none focus:ring-0 text-xl p-6 placeholder:text-white/20 resize-none text-white leading-relaxed"
+                />
+
+                {/* Textarea deco */}
+                <div className="absolute bottom-6 right-6 flex items-center gap-4">
+                  <div className="text-[10px] uppercase tracking-widest text-white/20 font-bold">
+                    {prompt.length} / 500
+                  </div>
+                </div>
               </div>
+            </GlassPanel>
+
+            {/* Action Buttons */}
+            <div className="flex gap-4">
+              <Button
+                onClick={onGenerate}
+                disabled={isLoading || !prompt.trim()}
+                className="flex-1 h-16 rounded-2xl bg-white text-black hover:bg-white/90 text-lg font-bold group transition-all duration-300"
+              >
+                <div className="flex items-center gap-2">
+                  {isLoading ? (
+                    <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                  ) : (
+                    <Wand2 className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                  )}
+                  {isLoading ? "Synthesizing..." : "Initialize Generation"}
+                </div>
+              </Button>
+            </div>
+
+            {/* Quick Prompts */}
+            <div className="flex flex-wrap gap-2">
+              {quickPrompts.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => onPromptChange(p)}
+                  className="px-4 py-2 rounded-full bg-white/5 border border-white/5 hover:border-white/20 hover:bg-white/10 text-xs text-white/60 transition-all"
+                >
+                  {p}
+                </button>
+              ))}
             </div>
           </div>
-        )}
 
-        {/* Duration - Only show when no music or when reset */}
-        {(!currentMusic || !showEditPanel) && (
-          <div className={cn(
-            "backdrop-blur-md rounded-2xl p-6 border shadow-xl transition-colors duration-300",
-            "bg-white/5 dark:bg-white/5 bg-white/95 shadow-lg",
-            "border-white/10 dark:border-white/10 border-gray-300",
-            "animate-in fade-in slide-in-from-bottom-4"
-          )}>
-            <Label className={cn("mb-4 block text-white dark:text-white text-gray-900")}>Duration</Label>
-            <div className="space-y-4">
+          {/* Side Controls */}
+          <div className="lg:col-span-4 flex flex-col gap-6">
+            <GlassPanel className="p-6 space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/40">
+                  <Timer className="w-3 h-3" />
+                  Duration
+                </div>
+                <div className="text-sm font-mono text-purple-400">
+                  {duration}s
+                </div>
+              </div>
+
               <Slider
                 value={[duration]}
                 onValueChange={([value]) => onDurationChange(value)}
                 min={5}
                 max={120}
                 step={1}
-                className="[&_[data-slot=slider-track]]:bg-gradient-to-r [&_[data-slot=slider-track]]:from-purple-500 [&_[data-slot=slider-track]]:to-cyan-500 [&_[data-slot=slider-thumb]]:bg-blue-500 [&_[data-slot=slider-thumb]]:border-blue-400"
+                className="[&_[data-slot=slider-track]]:h-1 [&_[data-slot=slider-track]]:bg-white/10 [&_[data-slot=slider-range]]:bg-purple-500 [&_[data-slot=slider-thumb]]:w-4 [&_[data-slot=slider-thumb]]:h-4 [&_[data-slot=slider-thumb]]:border-2 [&_[data-slot=slider-thumb]]:border-purple-500"
               />
-              <div className={cn("flex justify-between text-[10px] text-gray-500 dark:text-gray-500 px-1 mt-1")}>
-                <span>5s</span>
-                <span>30s</span>
-                <span>60s</span>
-                <span>90s</span>
-                <span>120s</span>
-              </div>
-              <div className="flex justify-center mt-3">
-                <div className={cn(
-                  "px-4 py-1.5 rounded-full border text-sm font-bold transition-all",
-                  "bg-purple-500/10 border-purple-500/30 text-purple-400 shadow-sm shadow-purple-500/10"
-                )}>
-                  Duration: {duration}s
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Generate Button - Always visible so users can generate again */}
-        <Button
-          onClick={onGenerate}
-          disabled={isLoading || !prompt.trim()}
-          className={cn(
-            "w-full h-14 text-lg font-semibold rounded-xl text-white",
-            "bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500",
-            "hover:from-purple-600 hover:via-pink-600 hover:to-cyan-600",
-            "disabled:opacity-50 disabled:cursor-not-allowed",
-            "transition-all duration-200 shadow-lg shadow-purple-500/30",
-            "flex items-center justify-center",
-            "animate-in fade-in slide-in-from-bottom-4"
-          )}
-        >
-          <Wand2 className="w-5 h-5 mr-2" />
-          {isLoading
-            ? "Generating..."
-            : currentMusic
-              ? "Generate New Music"
-              : "Generate Music"}
-        </Button>
-
-        {/* Music Player - Shows when music is generated */}
-        {currentMusic && (
-          <div className="transition-all duration-500 ease-in-out animate-in fade-in slide-in-from-bottom-4">
-            <MusicPlayer track={currentMusic} onEdit={onEditClick} />
-          </div>
-        )}
-
-        {/* Quick Prompts - Only show when no music */}
-        {!currentMusic && (
-          <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4">
-            <h3 className={cn("text-sm font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-400 text-gray-600")}>
-              Quick Prompts
-            </h3>
-            <div className="flex flex-wrap gap-3">
-              {quickPrompts.map((quickPrompt, index) => (
+              <div className="pt-4 border-t border-white/5">
                 <Button
-                  key={index}
-                  variant="outline"
-                  onClick={() => onPromptChange(quickPrompt)}
-                  className={cn(
-                    "rounded-lg transition-colors duration-200",
-                    "bg-white/5 dark:bg-white/5 bg-gray-100 border-2",
-                    "border-white/10 dark:border-white/10 border-gray-300",
-                    "text-white dark:text-white text-gray-800 font-medium",
-                    "hover:bg-white/10 dark:hover:bg-white/10 hover:bg-purple-100 hover:border-purple-400",
-                    "hover:border-white/20 dark:hover:border-white/20 hover:shadow-md"
-                  )}
+                  variant="ghost"
+                  onClick={onEditClick}
+                  className="w-full justify-start gap-2 h-10 text-white/60 hover:text-white hover:bg-white/5"
                 >
-                  {quickPrompt}
+                  <Settings2 className="w-4 h-4" />
+                  Advanced Parameters
                 </Button>
-              ))}
+              </div>
+            </GlassPanel>
+
+            <div className="space-y-4 px-2">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/20">Studio Status</h3>
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)] animate-pulse" />
+                <span className="text-xs text-white/40">Engine Standby</span>
+              </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Edit Settings Modal - Glassmorphic popup */}
+      {/* Edit Settings Modal */}
       <EditSettingsModal
         isOpen={!!currentMusic && showEditPanel}
         onClose={onEditClick}
@@ -254,4 +229,3 @@ export function GeneratePage({
     </div>
   );
 }
-
