@@ -1,15 +1,20 @@
-import { Navigation } from "./components/Navigation";
-import { GeneratePage } from "./components/GeneratePage";
+import { useState, useEffect } from "react";
+import StudioLayout from "./layouts/StudioLayout";
+import StickyGlassMediaPlayer from "./components/player/StickyGlassMediaPlayer";
+import { StudioGeneratePage } from "./components/studio/StudioGeneratePage";
 import { HistoryPage } from "./components/HistoryPage";
 import { MusicPlayer } from "./components/MusicPlayer";
 import { GenerationModal } from "./components/MusicGenerator/GenerationModal";
-import { cn } from "./lib/utils";
+import RefinementOverlay from "./components/studio/RefinementOverlay";
+import { Toast } from "./components/ui/Toast";
+import type { ToastData } from "./components/ui/Toast";
 import type { MusicTrack, GenerationParameters, PostProcessingParameters } from "./components/MusicGenerator/types";
 import { addTrack, getAllTracks, deleteTrack } from "./lib/db";
 import { API_CONFIG } from "./config";
-import { useState, useEffect } from "react";
 
 const HISTORY_STORAGE_KEY = "musicGenerationHistory";
+
+
 
 const base64ToBlob = (base64: string, mimeType: string): Blob => {
   const byteCharacters = atob(base64);
@@ -53,6 +58,8 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentMusic, setCurrentMusic] = useState<MusicTrack | null>(null);
   const [showEditPanel, setShowEditPanel] = useState(false);
+  const [showPlayer, setShowPlayer] = useState(false);
+  const [appToast, setAppToast] = useState<ToastData | null>(null);
   const [showGenerationModal, setShowGenerationModal] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [musicHistory, setMusicHistory] = useState<MusicTrack[]>([]);
@@ -113,6 +120,67 @@ function App() {
   }, []);
 
   const [generationStatus, setGenerationStatus] = useState("Preparing engine...");
+
+  // ── Smart API error parser ───────────────────────────────────────
+  const parseApiError = (err: unknown, context: "generate" | "edit"): ToastData => {
+    const action = context === "generate" ? "generate music" : "refine track";
+    const id = `api-error-${Date.now()}`;
+
+    if (err instanceof TypeError && err.message.toLowerCase().includes("fetch")) {
+      return {
+        id, type: "warning",
+        message: "Cannot reach the API server.",
+        detail: `The backend at ${API_CONFIG.BASE_URL} may be offline, asleep, or blocked. Start the server and try again.`,
+        duration: 9000,
+      };
+    }
+    if (err instanceof Error) {
+      const msg = err.message;
+      if (msg.includes("503") || msg.includes("502") || msg.includes("504")) return {
+        id, type: "error",
+        message: "API server unavailable (5xx).",
+        detail: "The backend may be overloaded or still starting. Wait a moment and retry.",
+        duration: 7000,
+      };
+      if (msg.includes("429")) return {
+        id, type: "warning",
+        message: "Rate limited — too many requests.",
+        detail: "Please wait a few seconds before trying again.",
+        duration: 6000,
+      };
+      if (msg.includes("401") || msg.includes("403")) return {
+        id, type: "error",
+        message: "Authorization failed.",
+        detail: "The API rejected your request. Check your credentials or endpoint URL.",
+        duration: 7000,
+      };
+      if (msg.includes("422")) return {
+        id, type: "error",
+        message: "Invalid parameters sent to server.",
+        detail: "The server couldn't process your prompt or settings. Try adjusting them.",
+        duration: 6000,
+      };
+      if (/timeout/i.test(msg)) return {
+        id, type: "warning",
+        message: "Request timed out.",
+        detail: "The server took too long. Try a shorter duration or simpler prompt.",
+        duration: 7000,
+      };
+      const code = msg.match(/status:\s*(\d+)/)?.[1];
+      if (code) return {
+        id, type: "error",
+        message: `API error (${code}) — could not ${action}.`,
+        detail: "Check the backend server logs for more details.",
+        duration: 7000,
+      };
+    }
+    return {
+      id, type: "error",
+      message: `Failed to ${action}.`,
+      detail: "An unexpected error occurred. Please try again.",
+      duration: 6000,
+    };
+  };
 
   const generateMusic = async () => {
     if (!generationParams.prompt.trim()) return;
@@ -215,7 +283,8 @@ function App() {
       };
 
       setCurrentMusic(newMusic);
-      setMusicHistory((prev: MusicTrack[]) => [newMusic, ...prev]);
+      setShowPlayer(true);
+      setMusicHistory((prev) => [newMusic, ...prev]);
       setShowEditPanel(false);
 
       setTimeout(() => {
@@ -231,7 +300,7 @@ function App() {
         setShowGenerationModal(false);
         setGenerationProgress(0);
       }, 500);
-      alert("Failed to generate music. Please try again.");
+      setAppToast(parseApiError(err, "generate"));
     } finally {
       setIsLoading(false);
     }
@@ -240,6 +309,7 @@ function App() {
   const selectMusicFromHistory = (music: MusicTrack) => {
     // Audio URL is already managed by the DB loader
     setCurrentMusic(music);
+    setShowPlayer(true);
 
     // Restore generation parameters if available, otherwise reset to defaults
     if (music.advancedSettings) {
@@ -344,8 +414,9 @@ function App() {
       };
 
       setCurrentMusic(updatedMusic);
-      setMusicHistory((prev: MusicTrack[]) =>
-        prev.map((m: MusicTrack) => (m.id === currentMusic.id ? updatedMusic : m))
+      setShowPlayer(true);
+      setMusicHistory((prev) =>
+        prev.map((m) => (m.id === currentMusic.id ? updatedMusic : m))
       );
       setShowEditPanel(false);
 
@@ -362,7 +433,7 @@ function App() {
         setShowGenerationModal(false);
         setGenerationProgress(0);
       }, 500);
-      alert("Failed to edit music. Please try again.");
+      setAppToast(parseApiError(err, "edit"));
     } finally {
       setIsLoading(false);
     }
@@ -371,16 +442,17 @@ function App() {
   const deleteFromHistory = async (id: number) => {
     try {
       await deleteTrack(id);
-      setMusicHistory((prev: MusicTrack[]) => prev.filter((music: MusicTrack) => music.id !== id));
+      setMusicHistory((prev) => prev.filter((music) => music.id !== id));
       if (currentMusic?.id === id) {
         setCurrentMusic(null);
+        setShowPlayer(false);
       }
     } catch (error) {
       console.error("Failed to delete track:", error);
     }
   };
 
-  const handleLogoClick = () => {
+  const _handleLogoClick = () => {
     setCurrentPage("generate");
     setCurrentMusic(null);
     setShowEditPanel(false);
@@ -397,7 +469,7 @@ function App() {
     });
   };
 
-  const toggleTheme = () => {
+  const _toggleTheme = () => {
     const newTheme = !isDark;
     setIsDark(newTheme);
     if (typeof window !== "undefined") {
@@ -422,146 +494,147 @@ function App() {
   }, [isDark]);
 
   return (
-    <div className={cn("min-h-screen", isDark ? "dark" : "")}>
-      {/* Background Layer */}
-      <div className="fluid-bg" />
+    <>
+      {/* Global API error toast */}
+      <Toast toast={appToast} onDismiss={() => setAppToast(null)} />
 
-      {/* Main Layout Canvas */}
-      <div className="h-screen w-screen flex flex-col relative">
-        <Navigation
-          currentPage={currentPage}
-          onPageChange={(page) => {
-            setCurrentPage(page);
-            if (page === "generate") {
-              setShowEditPanel(false);
-            }
-          }}
-          isDark={isDark}
-          onThemeToggle={toggleTheme}
-          onLogoClick={handleLogoClick}
-        />
-
-        {/* Content Area */}
-        <main className="flex-1 overflow-hidden relative z-0">
-          {currentPage === "generate" && (
-            <div className="h-full animate-in fade-in">
-              <GeneratePage
-                prompt={generationParams.prompt}
-                onPromptChange={(value) => setGenerationParams({ ...generationParams, prompt: value })}
-                duration={generationParams.duration}
-                onDurationChange={(value) => setGenerationParams({ ...generationParams, duration: value })}
-                onGenerate={generateMusic}
-                isLoading={isLoading}
-                currentMusic={currentMusic}
-                onEditClick={() => setShowEditPanel(!showEditPanel)}
-                showEditPanel={showEditPanel}
-                temperature={postProcessingParams.temperature}
-                onTemperatureChange={(value) =>
-                  setPostProcessingParams({ ...postProcessingParams, temperature: value })
-                }
-                cfgCoef={postProcessingParams.cfgCoef}
-                onCfgCoefChange={(value) =>
-                  setPostProcessingParams({ ...postProcessingParams, cfgCoef: value })
-                }
-                topK={postProcessingParams.topK}
-                onTopKChange={(value) => setPostProcessingParams({ ...postProcessingParams, topK: value })}
-                topP={postProcessingParams.topP}
-                onTopPChange={(value) => setPostProcessingParams({ ...postProcessingParams, topP: value })}
-                useSampling={postProcessingParams.useSampling}
-                onUseSamplingChange={(value) =>
-                  setPostProcessingParams({ ...postProcessingParams, useSampling: value })
-                }
-                reverb={postProcessingParams.reverb}
-                onReverbChange={(value) =>
-                  setPostProcessingParams({ ...postProcessingParams, reverb: value })
-                }
-                bassBoost={postProcessingParams.bassBoost}
-                onBassBoostChange={(value) =>
-                  setPostProcessingParams({ ...postProcessingParams, bassBoost: value })
-                }
-                treble={postProcessingParams.treble}
-                onTrebleChange={(value) =>
-                  setPostProcessingParams({ ...postProcessingParams, treble: value })
-                }
-                speed={postProcessingParams.speed}
-                onSpeedChange={(value) =>
-                  setPostProcessingParams({ ...postProcessingParams, speed: value })
-                }
-                onResetEffects={handleResetEffects}
-                onApplyEdit={handleEditMusic}
-              />
-            </div>
-          )}
-          {currentPage === "history" && (
-            <div className="h-full animate-in fade-in">
-              <HistoryPage
-                musicHistory={musicHistory}
-                selectedMusic={currentMusic}
-                onSelectMusic={selectMusicFromHistory}
-                onDeleteMusic={deleteFromHistory}
-                onEditClick={() => { }}
-                temperature={postProcessingParams.temperature}
-                onTemperatureChange={(value) =>
-                  setPostProcessingParams({ ...postProcessingParams, temperature: value })
-                }
-                cfgCoef={postProcessingParams.cfgCoef}
-                onCfgCoefChange={(value) =>
-                  setPostProcessingParams({ ...postProcessingParams, cfgCoef: value })
-                }
-                topK={postProcessingParams.topK}
-                onTopKChange={(value) => setPostProcessingParams({ ...postProcessingParams, topK: value })}
-                topP={postProcessingParams.topP}
-                onTopPChange={(value) => setPostProcessingParams({ ...postProcessingParams, topP: value })}
-                useSampling={postProcessingParams.useSampling}
-                onUseSamplingChange={(value) =>
-                  setPostProcessingParams({ ...postProcessingParams, useSampling: value })
-                }
-                reverb={postProcessingParams.reverb}
-                onReverbChange={(value) =>
-                  setPostProcessingParams({ ...postProcessingParams, reverb: value })
-                }
-                bassBoost={postProcessingParams.bassBoost}
-                onBassBoostChange={(value) =>
-                  setPostProcessingParams({ ...postProcessingParams, bassBoost: value })
-                }
-                treble={postProcessingParams.treble}
-                onTrebleChange={(value) =>
-                  setPostProcessingParams({ ...postProcessingParams, treble: value })
-                }
-                speed={postProcessingParams.speed}
-                onSpeedChange={(value) =>
-                  setPostProcessingParams({ ...postProcessingParams, speed: value })
-                }
-                onResetEffects={handleResetEffects}
-                onApplyEdit={handleEditMusic}
-                isLoading={isLoading}
-              />
-            </div>
-          )}
-        </main>
-
-        {/* Global Music Dock - Only shows when music is active */}
-        {currentMusic && currentPage === "generate" && !showEditPanel && (
-          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-2xl px-6">
-            <MusicPlayer track={currentMusic} onEdit={() => setShowEditPanel(true)} />
-          </div>
-        )}
-      </div>
-
-      {/* Generation Modal */}
-      <GenerationModal
-        isOpen={showGenerationModal}
-        progress={generationProgress}
-        status={generationStatus}
-        onClose={() => {
-          // Only allow manual close if not actively loading
-          if (!isLoading) {
-            setShowGenerationModal(false);
-            setGenerationProgress(0);
+      <StudioLayout
+        activeTab={currentPage === "generate" ? "studio" : "library"}
+        onTabChange={(tab) => {
+          setCurrentPage(tab === "studio" ? "generate" : "history");
+          if (tab === "studio") {
+            setShowEditPanel(false);
           }
         }}
+        bottomSlot={
+          currentMusic && showPlayer
+            ? (
+              <StickyGlassMediaPlayer key="media-player" onClose={() => setShowPlayer(false)}>
+                <MusicPlayer
+                  track={currentMusic}
+                  onEdit={() => setShowEditPanel(true)}
+                />
+              </StickyGlassMediaPlayer>
+            )
+            : undefined
+        }
+      >
+        {currentPage === "generate" && (
+          <StudioGeneratePage
+            {...generationParams}
+            {...postProcessingParams}
+            prompt={generationParams.prompt}
+            onPromptChange={(value: string) => setGenerationParams({ ...generationParams, prompt: value })}
+            duration={generationParams.duration}
+            onDurationChange={(value: number) => setGenerationParams({ ...generationParams, duration: value })}
+            onGenerate={generateMusic}
+            isLoading={isLoading}
+            currentMusic={currentMusic}
+            onEditClick={() => setShowEditPanel(!showEditPanel)}
+            showEditPanel={showEditPanel}
+            onResetEffects={handleResetEffects}
+            onApplyEdit={handleEditMusic}
+            musicHistory={musicHistory}
+            onPlay={selectMusicFromHistory}
+            // Mapping onXChange handlers for all post-processing params
+            onTemperatureChange={(value: number) => setPostProcessingParams({ ...postProcessingParams, temperature: value })}
+            onCfgCoefChange={(value: number) => setPostProcessingParams({ ...postProcessingParams, cfgCoef: value })}
+            onTopKChange={(value: number) => setPostProcessingParams({ ...postProcessingParams, topK: value })}
+            onTopPChange={(value: number) => setPostProcessingParams({ ...postProcessingParams, topP: value })}
+            onUseSamplingChange={(value: boolean) => setPostProcessingParams({ ...postProcessingParams, useSampling: value })}
+            onReverbChange={(value: number) => setPostProcessingParams({ ...postProcessingParams, reverb: value })}
+            onBassBoostChange={(value: number) => setPostProcessingParams({ ...postProcessingParams, bassBoost: value })}
+            onTrebleChange={(value: number) => setPostProcessingParams({ ...postProcessingParams, treble: value })}
+            onSpeedChange={(value: number) => setPostProcessingParams({ ...postProcessingParams, speed: value })}
+          />
+        )}
+
+        {currentPage === "history" && (
+          <HistoryPage
+            musicHistory={musicHistory}
+            selectedMusic={currentMusic}
+            onSelectMusic={selectMusicFromHistory}
+            onDeleteMusic={deleteFromHistory}
+            onEditClick={() => { }}
+            temperature={postProcessingParams.temperature}
+            onTemperatureChange={(value) =>
+              setPostProcessingParams({ ...postProcessingParams, temperature: value })
+            }
+            cfgCoef={postProcessingParams.cfgCoef}
+            onCfgCoefChange={(value) =>
+              setPostProcessingParams({ ...postProcessingParams, cfgCoef: value })
+            }
+            topK={postProcessingParams.topK}
+            onTopKChange={(value) => setPostProcessingParams({ ...postProcessingParams, topK: value })}
+            topP={postProcessingParams.topP}
+            onTopPChange={(value) => setPostProcessingParams({ ...postProcessingParams, topP: value })}
+            useSampling={postProcessingParams.useSampling}
+            onUseSamplingChange={(value) =>
+              setPostProcessingParams({ ...postProcessingParams, useSampling: value })
+            }
+            reverb={postProcessingParams.reverb}
+            onReverbChange={(value) =>
+              setPostProcessingParams({ ...postProcessingParams, reverb: value })
+            }
+            bassBoost={postProcessingParams.bassBoost}
+            onBassBoostChange={(value) =>
+              setPostProcessingParams({ ...postProcessingParams, bassBoost: value })
+            }
+            treble={postProcessingParams.treble}
+            onTrebleChange={(value) =>
+              setPostProcessingParams({ ...postProcessingParams, treble: value })
+            }
+            speed={postProcessingParams.speed}
+            onSpeedChange={(value) =>
+              setPostProcessingParams({ ...postProcessingParams, speed: value })
+            }
+            onResetEffects={handleResetEffects}
+            onApplyEdit={handleEditMusic}
+            isLoading={isLoading}
+          />
+        )}
+
+        {/* Generation Modal */}
+        <GenerationModal
+          isOpen={showGenerationModal}
+          progress={generationProgress}
+          status={generationStatus}
+          onClose={() => {
+            if (!isLoading) {
+              setShowGenerationModal(false);
+              setGenerationProgress(0);
+            }
+          }}
+        />
+      </StudioLayout>
+
+      {/* === REFINEMENT OVERLAY === */}
+      <RefinementOverlay
+        isOpen={showEditPanel}
+        onClose={() => setShowEditPanel(false)}
+        temperature={postProcessingParams.temperature}
+        onTemperatureChange={(value) => setPostProcessingParams({ ...postProcessingParams, temperature: value })}
+        cfgCoef={postProcessingParams.cfgCoef}
+        onCfgCoefChange={(value) => setPostProcessingParams({ ...postProcessingParams, cfgCoef: value })}
+        topK={postProcessingParams.topK}
+        onTopKChange={(value) => setPostProcessingParams({ ...postProcessingParams, topK: value })}
+        topP={postProcessingParams.topP}
+        onTopPChange={(value) => setPostProcessingParams({ ...postProcessingParams, topP: value })}
+        useSampling={postProcessingParams.useSampling}
+        onUseSamplingChange={(value) => setPostProcessingParams({ ...postProcessingParams, useSampling: value })}
+        reverb={postProcessingParams.reverb}
+        onReverbChange={(value) => setPostProcessingParams({ ...postProcessingParams, reverb: value })}
+        bassBoost={postProcessingParams.bassBoost}
+        onBassBoostChange={(value) => setPostProcessingParams({ ...postProcessingParams, bassBoost: value })}
+        treble={postProcessingParams.treble}
+        onTrebleChange={(value) => setPostProcessingParams({ ...postProcessingParams, treble: value })}
+        speed={postProcessingParams.speed}
+        onSpeedChange={(value) => setPostProcessingParams({ ...postProcessingParams, speed: value })}
+        onResetEffects={handleResetEffects}
+        onApplyEdit={handleEditMusic}
+        isLoading={isLoading}
       />
-    </div>
+    </>
   );
 }
 

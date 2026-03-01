@@ -1,14 +1,26 @@
 :root {
-  --glass-bg: rgba(255,255,255,0.08);
-  --glass-border: rgba(255,255,255,0.18);
-  --glass-strong: rgba(255,255,255,0.12);
+  /* Glass Surfaces - Optimized for new palette */
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-strong: rgba(255, 255, 255, 0.06);
 
-  --accent-primary: #a855f7;
-  --accent-secondary: #06b6d4;
+  /* Light Theme Tokens */
+  --bg-light: #FFFFFF;
+  --text-light: #1E293B;
+  --accent-light: #EC4899;
+  --secondary-light: #6366F1;
+  --primary-light: #F6F7FB;
 
+  /* Dark Theme Tokens */
+  --bg-dark: #070A12;
+  --text-dark: #F8FAFC;
+  --accent-dark: #A855F7;
+  --secondary-dark: #22D3EE;
+  --primary-dark: #0B0F18;
+
+  /* Shared Tokens */
   --radius-xl: 24px;
   --radius-2xl: 32px;
-
-  --shadow-soft: 0 8px 32px rgba(0,0,0,0.3);
-  --shadow-glow: 0 0 24px rgba(168,85,247,0.35);
+  --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 20px rgba(168, 85, 247, 0.15);
 }
