@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { motion } from "framer-motion";
+import { Play, Trash2 } from "lucide-react";
 import { NeuralCover } from "@/components/studio/NeuralCover";
 
 interface Props {
@@ -56,12 +57,12 @@ const MelodyGalleryItem: React.FC<Props> = ({
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
             className={`
-                relative aspect-square w-full rounded-[28px] overflow-hidden backdrop-blur-xl
-                bg-[var(--glass-bg)]
+                relative aspect-square w-full rounded-2xl overflow-hidden
+                bg-white/[0.03]
                 border
-                ${isActive ? "border-[var(--accent)] shadow-[0_0_40px_var(--accent)]" : "border-[var(--glass-border)]"}
-                shadow-xl cursor-pointer
-                transition-transform duration-300 will-change-transform
+                ${isActive ? "border-violet-500/50 shadow-[0_0_20px_rgba(139,92,246,0.15)]" : "border-white/[0.06]"}
+                shadow-lg cursor-pointer
+                transition-transform duration-200 will-change-transform
             `}
         >
             <div className="absolute inset-0 z-0">
@@ -69,21 +70,21 @@ const MelodyGalleryItem: React.FC<Props> = ({
             </div>
 
             {/* Glass hover effect */}
-            <div className="absolute inset-0 opacity-0 hover:opacity-100 transition duration-300 backdrop-blur-md bg-black/20 flex items-center justify-center gap-4 z-20">
+            <div className="absolute inset-0 opacity-0 hover:opacity-100 transition duration-200 bg-black/30 flex items-center justify-center gap-3 z-20">
                 <button
                     onClick={onPlay}
-                    className={`w-14 h-14 rounded-full backdrop-blur-lg border border-[var(--accent)]/40 shadow-[0_0_20px_var(--accent)] transition ${isActive ? "bg-[var(--accent)]/30" : "bg-[var(--accent)]/20"
+                    className={`w-12 h-12 rounded-full border border-violet-400/40 shadow-[0_0_16px_rgba(139,92,246,0.3)] transition flex items-center justify-center ${isActive ? "bg-violet-500/30" : "bg-violet-500/20"
                         }`}
                 >
-                    ▶
+                    <Play className="w-5 h-5 text-white fill-white ml-0.5" />
                 </button>
 
                 {onDelete && (
                     <button
                         onClick={onDelete}
-                        className="px-4 py-2 rounded-full backdrop-blur-lg bg-white/10 border border-white/20 hover:bg-white/20 transition text-white text-xs font-bold"
+                        className="w-10 h-10 rounded-full bg-white/[0.06] border border-white/[0.1] hover:bg-red-500/20 hover:border-red-400/30 transition flex items-center justify-center"
                     >
-                        Delete
+                        <Trash2 className="w-4 h-4 text-white/60" />
                     </button>
                 )}
             </div>

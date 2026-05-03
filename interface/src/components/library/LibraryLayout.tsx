@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import MelodyGalleryItem from "./MelodyGalleryItem";
+import { motion } from "framer-motion";
+import MasonryLibrary from "./MasonryLibrary";
 import ConfirmDeleteDialog from "@/components/ui/ConfirmDeleteDialog";
 import { Toast } from "@/components/ui/Toast";
 import type { ToastData } from "@/components/ui/Toast";
@@ -54,60 +54,67 @@ const LibraryLayout: React.FC<Props> = ({
     return (
         <div className="mt-16">
             {/* ── Header ── */}
-            <div className="mb-10 text-left">
-                <h1 className="text-3xl font-semibold mb-2">Your Melodies</h1>
-                <p className="text-white/50">
+            <motion.div
+                className="mb-12 text-left"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: "spring", stiffness: 250, damping: 22 }}
+            >
+                <h1
+                    className="text-4xl md:text-5xl font-medium mb-3 font-serif text-[#ffe0e0]"
+                    style={{ textShadow: "0 0 30px rgba(139,92,246,0.2)" }}
+                >
+                    Your Melodies
+                </h1>
+                <p className="text-gray-500 font-light text-lg">
                     An evolving collection of your AI-generated soundscapes.
                 </p>
-                <p className="text-xs text-white/25 mt-1">
+                <motion.p
+                    className="text-xs text-white/20 mt-2 inline-flex items-center gap-2"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                >
+                    <span className="w-1 h-1 rounded-full bg-violet-400/50" />
                     {tracks.length} {tracks.length === 1 ? "melody" : "melodies"}
-                </p>
-            </div>
-
-            {/* ── Grid with smooth reflow ── */}
-            <motion.div
-                layout
-                className="
-                    grid
-                    grid-cols-2
-                    sm:grid-cols-3
-                    lg:grid-cols-4
-                    xl:grid-cols-5
-                    gap-5
-                "
-            >
-                <AnimatePresence mode="popLayout">
-                    {tracks.map((track) => (
-                        <motion.div
-                            key={track.id}
-                            layout
-                            initial={{ opacity: 0, scale: 0.85 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.75, transition: { duration: 0.22 } }}
-                            transition={{ type: "spring", damping: 22, stiffness: 280 }}
-                        >
-                            <MelodyGalleryItem
-                                id={track.id}
-                                prompt={track.prompt}
-                                onPlay={() => onPlay(track.id)}
-                                onDelete={() => requestDelete(track.id, track.prompt)}
-                                isActive={track.id === activeTrackId}
-                            />
-                        </motion.div>
-                    ))}
-                </AnimatePresence>
+                </motion.p>
             </motion.div>
+
+            {/* ── Masonry Gallery ── */}
+            <MasonryLibrary
+                tracks={tracks}
+                onPlay={onPlay}
+                onDelete={(id) => {
+                    const track = tracks.find((t) => t.id === id);
+                    if (track) requestDelete(track.id, track.prompt);
+                }}
+                activeTrackId={activeTrackId}
+            />
 
             {/* Empty state */}
             {tracks.length === 0 && (
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, y: 30, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ type: "spring", stiffness: 250, damping: 22 }}
                     className="flex flex-col items-center justify-center gap-4 py-32 text-center"
                 >
-                    <div className="text-5xl opacity-20">🎵</div>
-                    <p className="text-white/30 text-base font-medium">Your library is empty.</p>
-                    <p className="text-white/20 text-sm">Generate your first melody in the Studio tab.</p>
+                    <motion.div
+                        className="w-16 h-16 rounded-2xl flex items-center justify-center mb-2"
+                        style={{
+                            background: "rgba(255,255,255,0.03)",
+                            border: "1px solid rgba(255,255,255,0.05)",
+                            backdropFilter: "blur(12px)",
+                        }}
+                        whileHover={{ scale: 1.1, rotate: 5 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                    >
+                        <svg viewBox="0 0 24 24" className="w-6 h-6 text-white/20" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
+                        </svg>
+                    </motion.div>
+                    <p className="text-white/25 text-sm font-medium">Your library is empty</p>
+                    <p className="text-white/12 text-xs">Generate your first melody in the Studio tab.</p>
                 </motion.div>
             )}
 

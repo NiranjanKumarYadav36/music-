@@ -28,29 +28,29 @@ const GlassSlider: React.FC<GlassSliderProps> = ({ label, value, min, max, step 
     const percent = ((value - min) / (max - min)) * 100;
 
     return (
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-5">
             {/* Label */}
-            <span className="w-32 text-xs font-bold uppercase tracking-[0.15em] text-white/40 flex-shrink-0">
+            <span className="w-28 text-[10px] font-semibold uppercase tracking-[0.15em] text-white/30 flex-shrink-0">
                 {label}
             </span>
 
             {/* Rail */}
-            <div className="relative flex-1 h-3 group">
+            <div className="relative flex-1 h-2.5 group">
                 {/* Background track */}
-                <div className="absolute inset-0 rounded-full bg-white/8 backdrop-blur-sm border border-white/10" />
+                <div className="absolute inset-0 rounded-full bg-white/[0.06] border border-white/[0.06]" />
                 {/* Fill track */}
                 <div
                     className="absolute left-0 top-0 h-full rounded-full transition-all duration-150"
                     style={{
                         width: `${percent}%`,
-                        background: "linear-gradient(90deg, rgba(168,85,247,0.8), rgba(34,211,238,0.9))",
-                        boxShadow: `0 0 ${8 + percent * 0.2}px rgba(168,85,247,0.5)`,
+                        background: "linear-gradient(90deg, rgba(129,140,248,0.7), rgba(167,139,250,0.8))",
+                        boxShadow: `0 0 ${6 + percent * 0.15}px rgba(139,92,246,0.3)`,
                     }}
                 />
                 {/* Thumb */}
                 <div
-                    className="absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full backdrop-blur-lg bg-white/90 border-2 border-[var(--accent)] shadow-[0_0_10px_rgba(168,85,247,0.6)] transition-all duration-150"
-                    style={{ left: `calc(${percent}% - 10px)` }}
+                    className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white/90 border border-violet-400/50 shadow-[0_0_8px_rgba(139,92,246,0.3)] transition-all duration-150"
+                    style={{ left: `calc(${percent}% - 8px)` }}
                 />
                 {/* Invisible input */}
                 <input
@@ -66,8 +66,7 @@ const GlassSlider: React.FC<GlassSliderProps> = ({ label, value, min, max, step 
 
             {/* Value */}
             <span
-                className="w-14 text-right text-sm font-bold tabular-nums"
-                style={{ color: `hsl(${270 - percent * 0.7}, 80%, 75%)` }}
+                className="w-12 text-right text-xs font-semibold tabular-nums text-violet-300"
             >
                 {display}
             </span>
@@ -87,23 +86,23 @@ const SoundSculptSection: React.FC<SoundSculptSectionProps> = ({
             {/* Section header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-white/60">
-                        Sound Sculpt
+                    <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">
+                        Audio Effects
                     </h3>
-                    <p className="text-[11px] text-white/25 mt-0.5">Shape the sonic texture</p>
+                    <p className="text-[10px] text-white/20 mt-0.5">Shape the sonic texture</p>
                 </div>
                 <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={onResetEffects}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-white/40 hover:text-white/70 hover:border-white/20 transition-all duration-200"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[10px] font-medium uppercase tracking-wider text-white/30 hover:text-white/60 hover:border-white/[0.1] transition-all duration-200"
                 >
                     <RotateCcw className="w-3 h-3" />
                     Reset
                 </motion.button>
             </div>
 
-            <div className="space-y-7">
+            <div className="space-y-5">
                 <GlassSlider
                     label="Reverb"
                     value={reverb}

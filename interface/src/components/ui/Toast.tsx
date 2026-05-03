@@ -87,16 +87,16 @@ export const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
                 >
                     {/* Outer glow halo */}
                     <div
-                        className="absolute inset-0 rounded-[22px] pointer-events-none"
+                        className="absolute inset-0 rounded-xl pointer-events-none"
                         style={{
-                            boxShadow: `0 0 40px 6px ${theme.glow}`,
-                            opacity: 0.7,
+                            boxShadow: `0 0 28px 4px ${theme.glow}`,
+                            opacity: 0.5,
                         }}
                     />
 
                     {/* Glass panel */}
                     <div
-                        className="relative overflow-hidden rounded-[22px]"
+                        className="relative overflow-hidden rounded-xl"
                         style={{
                             background: "rgba(12, 10, 18, 0.72)",
                             backdropFilter: "blur(32px) saturate(180%)",

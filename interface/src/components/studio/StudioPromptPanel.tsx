@@ -90,16 +90,16 @@ export const StudioPromptPanel: React.FC<StudioPromptPanelProps> = ({
             {/* Quick Seeds */}
             {!currentMusic && (
                 <div className="w-full max-w-2xl mx-auto flex flex-wrap justify-center gap-3 px-6 -mt-4 animate-in fade-in duration-500 delay-200">
-                    <span className="w-full text-center text-[10px] uppercase tracking-[0.2em] text-zinc-600 font-bold mb-1">
-                        Visual Seeds
+                    <span className="w-full text-center text-[10px] uppercase tracking-[0.15em] text-white/20 font-medium mb-1">
+                        Quick Prompts
                     </span>
                     {quickPrompts.map((p) => (
                         <button
                             key={p}
                             onClick={() => onPromptChange(p)}
                             className={cn(
-                                "px-4 py-2 rounded-full text-xs font-semibold transition-all duration-300",
-                                "bg-zinc-800/40 border border-white/5 text-zinc-400 hover:text-white hover:bg-zinc-800/80 hover:border-white/10",
+                                "px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
+                                "bg-white/[0.03] border border-white/[0.06] text-white/40 hover:text-white/70 hover:bg-white/[0.06] hover:border-white/[0.1]",
                                 "cursor-pointer active:scale-95"
                             )}
                         >
@@ -117,8 +117,8 @@ export const StudioPromptPanel: React.FC<StudioPromptPanelProps> = ({
                     disabled={!prompt.trim()}
                 />
                 {prompt.trim().length > 0 && !isLoading && !currentMusic && (
-                    <p className="text-[10px] font-bold tracking-[0.3em] text-zinc-600 uppercase animate-pulse">
-                        Neural pulse ready
+                    <p className="text-[10px] font-medium tracking-[0.15em] text-white/20 uppercase">
+                        Ready to generate
                     </p>
                 )}
             </div>
@@ -126,11 +126,11 @@ export const StudioPromptPanel: React.FC<StudioPromptPanelProps> = ({
             {/* Success State Indicator */}
             {currentMusic && (
                 <div className="w-full text-center space-y-2 animate-in fade-in zoom-in-95 duration-700">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400 uppercase tracking-widest">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/15 text-[10px] font-medium text-emerald-400 uppercase tracking-wider">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                         Generation Complete
                     </div>
-                    <p className="text-zinc-500 text-xs">Your masterpiece is now live in the playback deck below.</p>
+                    <p className="text-white/25 text-xs">Your track is ready in the player below.</p>
                 </div>
             )}
 

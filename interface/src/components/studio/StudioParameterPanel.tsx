@@ -42,10 +42,10 @@ export const StudioParameterPanel: React.FC<StudioParameterPanelProps> = ({
             className
         )}>
             {/* Engine Controls Section */}
-            <div className="backdrop-blur-3xl bg-white/[0.03] border border-white/[0.08] rounded-[var(--radius-xl)] p-6 shadow-[var(--shadow-soft)] transition-all duration-300 hover:border-white/10">
-                <div className="flex items-center gap-2 mb-6 text-zinc-500">
-                    <Settings2 className="w-4 h-4 text-primary" />
-                    <span className="text-[10px] font-bold uppercase tracking-[0.25em]">Neural Engine</span>
+            <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-5 shadow-sm transition-all duration-200 hover:border-white/[0.09]">
+                <div className="flex items-center gap-2 mb-5 text-white/30">
+                    <Settings2 className="w-3.5 h-3.5 text-violet-400" />
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">Parameters</span>
                 </div>
 
                 <div className="space-y-8">
@@ -106,17 +106,17 @@ export const StudioParameterPanel: React.FC<StudioParameterPanelProps> = ({
             </div>
 
             {/* Sampling Section */}
-            <div className="backdrop-blur-3xl bg-white/[0.03] border border-white/[0.08] rounded-[var(--radius-xl)] p-6 shadow-[var(--shadow-soft)] transition-all duration-300 hover:border-white/10">
-                <div className="flex items-center gap-2 mb-6 text-zinc-500">
-                    <Binary className="w-4 h-4 text-secondary" />
-                    <span className="text-[10px] font-bold uppercase tracking-[0.25em]">Sampling logic</span>
+            <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-5 shadow-sm transition-all duration-200 hover:border-white/[0.09]">
+                <div className="flex items-center gap-2 mb-5 text-white/30">
+                    <Binary className="w-3.5 h-3.5 text-sky-400" />
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">Sampling</span>
                 </div>
 
                 <div className="space-y-6">
                     <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                             <Label className="text-sm font-medium text-zinc-200">Use Sampling</Label>
-                            <p className="text-[10px] text-zinc-500">Diversify neural output</p>
+                            <p className="text-[10px] text-white/20">Diversify output</p>
                         </div>
                         <Switch
                             checked={useSampling}

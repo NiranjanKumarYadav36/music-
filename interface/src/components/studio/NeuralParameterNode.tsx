@@ -82,13 +82,13 @@ const NeuralParameterNode: React.FC<NeuralParameterNodeProps> = ({
         if (zoneRef.current) {
             if (n < 0.33) {
                 zoneRef.current.textContent = minLabel || "Low";
-                zoneRef.current.style.color = "#22d3ee";
+                zoneRef.current.style.color = "#60a5fa";
             } else if (n < 0.67) {
                 zoneRef.current.textContent = "Mid";
-                zoneRef.current.style.color = "#a855f7";
+                zoneRef.current.style.color = "#a78bfa";
             } else {
                 zoneRef.current.textContent = maxLabel || "High";
-                zoneRef.current.style.color = "#ec4899";
+                zoneRef.current.style.color = "#c084fc";
             }
         }
     }, [min, max, arcLength, circumference, decimals, unit, minLabel, maxLabel]);
@@ -144,10 +144,10 @@ const NeuralParameterNode: React.FC<NeuralParameterNodeProps> = ({
     const initGap = circumference - initDash;
 
     const zoneStyle = normalized < 0.33
-        ? { label: minLabel || "Low", cls: "text-cyan-400" }
+        ? { label: minLabel || "Low", cls: "text-blue-400" }
         : normalized < 0.67
-            ? { label: "Mid", cls: "text-purple-400" }
-            : { label: maxLabel || "High", cls: "text-pink-400" };
+            ? { label: "Mid", cls: "text-violet-400" }
+            : { label: maxLabel || "High", cls: "text-purple-400" };
 
     // Tick marks evenly spaced along the 270-degree arc
     const tickCount = 5;
@@ -180,14 +180,14 @@ const NeuralParameterNode: React.FC<NeuralParameterNodeProps> = ({
                 onPointerCancel={onPointerUp}
             >
                 {/* Glass orb background */}
-                <div className="absolute inset-0 rounded-full backdrop-blur-xl bg-white/[0.06] border border-white/10 group-hover:border-[var(--accent)]/40 group-hover:shadow-[0_0_30px_rgba(168,85,247,0.25)] transition-all duration-300" />
+                <div className="absolute inset-0 rounded-full bg-white/[0.04] border border-white/[0.08] group-hover:border-violet-400/30 group-hover:shadow-[0_0_20px_rgba(139,92,246,0.15)] transition-all duration-200" />
 
                 {/* SVG Arc */}
                 <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
                     <defs>
                         <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#a855f7" />
-                            <stop offset="100%" stopColor="#22d3ee" />
+                            <stop offset="0%" stopColor="#818cf8" />
+                            <stop offset="100%" stopColor="#a78bfa" />
                         </linearGradient>
                     </defs>
 
@@ -205,7 +205,7 @@ const NeuralParameterNode: React.FC<NeuralParameterNodeProps> = ({
                             strokeDasharray={`${initDash} ${initGap + circumference * 0.25}`}
                             strokeLinecap="round"
                             style={{
-                                filter: "drop-shadow(0 0 5px rgba(168,85,247,0.85))",
+                                filter: "drop-shadow(0 0 4px rgba(139,92,246,0.6))",
                                 transition: "stroke-dasharray 0.05s linear",
                             }}
                         />
@@ -214,10 +214,10 @@ const NeuralParameterNode: React.FC<NeuralParameterNodeProps> = ({
                     {/* Tick marks */}
                     {ticks.map((tick, i) => (
                         <circle key={i} cx={tick.x} cy={tick.y}
-                            r={tick.active ? 2.2 : 1.5}
+                            r={tick.active ? 2 : 1.5}
                             fill={tick.active
-                                ? (i === 0 ? "#22d3ee" : i === tickCount - 1 ? "#ec4899" : "#a855f7")
-                                : "rgba(255,255,255,0.12)"}
+                                ? (i === 0 ? "#60a5fa" : i === tickCount - 1 ? "#c084fc" : "#a78bfa")
+                                : "rgba(255,255,255,0.08)"}
                         />
                     ))}
                 </svg>
@@ -225,12 +225,12 @@ const NeuralParameterNode: React.FC<NeuralParameterNodeProps> = ({
                 {/* Center text — updated via ref during drag */}
                 <div className="relative z-10 flex flex-col items-center gap-0.5 pointer-events-none">
                     <span ref={valueRef}
-                        className="text-xl font-bold text-white tabular-nums leading-none"
+                        className="text-lg font-semibold text-white tabular-nums leading-none"
                     >
                         {value.toFixed(decimals)}{unit}
                     </span>
                     <span ref={zoneRef}
-                        className={`text-[9px] font-black uppercase tracking-widest ${zoneStyle.cls}`}
+                        className={`text-[8px] font-semibold uppercase tracking-wider ${zoneStyle.cls}`}
                     >
                         {zoneStyle.label}
                     </span>
@@ -239,7 +239,7 @@ const NeuralParameterNode: React.FC<NeuralParameterNodeProps> = ({
 
             {/* ── Label block — sits below with fixed gap, never overlaps ──── */}
             <div className="flex flex-col items-center gap-0.5 mt-4 mb-1">
-                <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/50 group-hover:text-white/80 transition-colors duration-300">
+                <span className="text-[10px] font-medium uppercase tracking-[0.15em] text-white/40 group-hover:text-white/70 transition-colors duration-200">
                     {label}
                 </span>
                 {hint && (
@@ -252,10 +252,10 @@ const NeuralParameterNode: React.FC<NeuralParameterNodeProps> = ({
             {/* Min / Max labels */}
             {(minLabel || maxLabel) && (
                 <div className="flex items-center justify-between w-28">
-                    <span className="text-[8px] text-cyan-400/50 font-bold uppercase tracking-wider">
+                    <span className="text-[8px] text-blue-400/40 font-medium uppercase tracking-wider">
                         {minLabel}
                     </span>
-                    <span className="text-[8px] text-pink-400/50 font-bold uppercase tracking-wider">
+                    <span className="text-[8px] text-purple-400/40 font-medium uppercase tracking-wider">
                         {maxLabel}
                     </span>
                 </div>

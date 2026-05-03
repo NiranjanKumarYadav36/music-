@@ -39,7 +39,7 @@ const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
                         transition={{ type: "spring", damping: 26, stiffness: 320 }}
                         className="fixed inset-0 z-[91] flex items-center justify-center px-6 pointer-events-none"
                     >
-                        <div className="pointer-events-auto w-full max-w-sm relative rounded-[28px] backdrop-blur-2xl bg-white/[0.07] border border-white/15 shadow-[0_20px_80px_rgba(0,0,0,0.6)] p-8 overflow-hidden">
+                        <div className="pointer-events-auto w-full max-w-sm relative rounded-2xl bg-white/[0.04] border border-white/[0.08] shadow-[0_16px_60px_rgba(0,0,0,0.5)] p-7 overflow-hidden">
 
                             {/* Glow top */}
                             <div className="absolute top-0 inset-x-0 h-24 opacity-[0.06] pointer-events-none"
@@ -48,14 +48,14 @@ const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
 
                             {/* Icon */}
                             <div className="flex items-center justify-center mb-5">
-                                <div className="w-14 h-14 rounded-full flex items-center justify-center backdrop-blur-lg bg-red-500/15 border border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.3)]">
-                                    <AlertTriangle className="w-6 h-6 text-red-400" />
+                                <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-red-500/10 border border-red-500/20">
+                                    <AlertTriangle className="w-5 h-5 text-red-400" />
                                 </div>
                             </div>
 
                             {/* Text */}
-                            <div className="text-center mb-7">
-                                <h3 className="text-lg font-bold text-white mb-2">Delete Melody?</h3>
+                            <div className="text-center mb-6">
+                                <h3 className="text-base font-semibold text-white mb-1.5">Delete Melody?</h3>
                                 <p className="text-sm text-white/50 leading-relaxed">
                                     <span className="text-white/70 font-medium italic">
                                         "{trackName.length > 48 ? trackName.slice(0, 48) + "…" : trackName}"
@@ -71,17 +71,17 @@ const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
                                     whileHover={{ scale: 1.03 }}
                                     whileTap={{ scale: 0.97 }}
                                     onClick={onCancel}
-                                    className="flex-1 py-3 rounded-2xl backdrop-blur-lg bg-white/8 border border-white/15 text-sm font-semibold text-white/70 hover:text-white hover:bg-white/12 transition-all duration-200"
+                                    className="flex-1 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm font-medium text-white/60 hover:text-white hover:bg-white/[0.06] transition-all duration-200"
                                 >
-                                    Keep It
+                                    Cancel
                                 </motion.button>
 
                                 {/* Confirm Delete */}
                                 <motion.button
-                                    whileHover={{ scale: 1.03 }}
-                                    whileTap={{ scale: 0.97 }}
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
                                     onClick={onConfirm}
-                                    className="flex-1 py-3 rounded-2xl backdrop-blur-lg bg-red-500/20 border border-red-500/40 text-sm font-bold text-red-300 hover:bg-red-500/30 hover:border-red-500/60 hover:text-red-200 hover:shadow-[0_0_20px_rgba(239,68,68,0.3)] transition-all duration-200"
+                                    className="flex-1 py-2.5 rounded-xl bg-red-500/15 border border-red-500/30 text-sm font-medium text-red-300 hover:bg-red-500/25 hover:border-red-500/50 transition-all duration-200"
                                 >
                                     Delete
                                 </motion.button>

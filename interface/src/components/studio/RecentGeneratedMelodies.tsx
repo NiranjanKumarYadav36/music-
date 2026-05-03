@@ -24,16 +24,17 @@ const MelodyCard: React.FC<{
 }> = ({ track, isActive, onPlay }) => (
     <motion.div
         onClick={onPlay}
-        whileHover={{ scale: 1.05, y: -4 }}
-        whileTap={{ scale: 0.97 }}
-        className="relative flex-shrink-0 w-44 h-44 rounded-[26px] overflow-hidden cursor-pointer"
+        whileHover={{ scale: 1.06, y: -5, rotate: 1 }}
+        whileTap={{ scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 400, damping: 15 }}
+        className="relative flex-shrink-0 w-44 h-44 rounded-2xl overflow-hidden cursor-pointer"
         style={{
             border: isActive
-                ? "1px solid rgba(168,85,247,0.7)"
-                : "1px solid rgba(255,255,255,0.08)",
+                ? "1px solid rgba(139,92,246,0.4)"
+                : "1px solid rgba(255,255,255,0.04)",
             boxShadow: isActive
-                ? "0 0 32px rgba(168,85,247,0.35), 0 8px 32px rgba(0,0,0,0.5)"
-                : "0 4px 24px rgba(0,0,0,0.4)",
+                ? "0 0 30px rgba(139,92,246,0.2), 0 8px 32px rgba(0,0,0,0.4)"
+                : "0 8px 24px rgba(0,0,0,0.3)",
         }}
     >
         {/* Album art cover */}
@@ -44,10 +45,10 @@ const MelodyCard: React.FC<{
         {/* Active pulsing ring */}
         {isActive && (
             <motion.div
-                className="absolute inset-0 rounded-[26px] pointer-events-none z-30"
-                style={{ border: "2px solid rgba(168,85,247,0.5)" }}
-                animate={{ opacity: [0.4, 1, 0.4] }}
-                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute inset-0 rounded-2xl pointer-events-none z-30"
+                style={{ border: "1.5px solid rgba(139,92,246,0.4)" }}
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             />
         )}
 
@@ -60,11 +61,11 @@ const MelodyCard: React.FC<{
             transition={{ duration: 0.18 }}
         >
             <div
-                className="w-12 h-12 rounded-full flex items-center justify-center"
+                className="w-11 h-11 rounded-full flex items-center justify-center"
                 style={{
-                    background: "rgba(168,85,247,0.28)",
-                    border: "1px solid rgba(168,85,247,0.55)",
-                    boxShadow: "0 0 20px rgba(168,85,247,0.5)",
+                    background: "rgba(139,92,246,0.2)",
+                    border: "1px solid rgba(139,92,246,0.4)",
+                    boxShadow: "0 0 16px rgba(139,92,246,0.3)",
                 }}
             >
                 <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white ml-0.5">
@@ -78,7 +79,7 @@ const MelodyCard: React.FC<{
             className="absolute bottom-0 left-0 right-0 z-10 px-3 py-2.5"
             style={{ background: "linear-gradient(to top, rgba(0,0,0,0.88), transparent)" }}
         >
-            <p className="text-[9.5px] font-bold uppercase tracking-widest text-white/90 truncate">
+            <p className="text-[9px] font-medium uppercase tracking-wider text-white/80 truncate">
                 {track.prompt}
             </p>
             {isActive && (
@@ -86,13 +87,13 @@ const MelodyCard: React.FC<{
                     {[1, 1.4, 0.8, 1.2, 1].map((h, i) => (
                         <motion.div
                             key={i}
-                            className="w-[2px] rounded-full bg-purple-400"
+                            className="w-[2px] rounded-full bg-violet-400"
                             animate={{ scaleY: [h, h * 1.8, h] }}
                             transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.1, ease: "easeInOut" }}
-                            style={{ height: 8, transformOrigin: "bottom" }}
+                            style={{ height: 7, transformOrigin: "bottom" }}
                         />
                     ))}
-                    <span className="text-[8px] text-purple-400 font-bold ml-1 tracking-widest uppercase">Now</span>
+                    <span className="text-[8px] text-violet-400 font-medium ml-1 tracking-wider uppercase">Playing</span>
                 </div>
             )}
         </div>
@@ -189,12 +190,12 @@ const RecentGeneratedMelodies: React.FC<Props> = ({ tracks, activeTrackId, onPla
 
             {/* Header */}
             <div className="flex items-center gap-3 px-1 mb-5">
-                <div className="w-1 h-5 rounded-full bg-gradient-to-b from-purple-400 to-purple-400/20" />
-                <span className="text-[11px] font-black uppercase tracking-[0.3em] text-white/40 select-none">
-                    Your Library
+                <div className="w-0.5 h-4 rounded-full bg-violet-400/60" />
+                <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30 select-none">
+                    Recent Generations
                 </span>
                 <div className="flex-1 h-px bg-white/[0.04]" />
-                <span className="text-[10px] text-white/20 tracking-widest">
+                <span className="text-[10px] text-white/15 tracking-wide">
                     {tracks.length} track{tracks.length !== 1 ? "s" : ""}
                 </span>
             </div>

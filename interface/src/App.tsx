@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import StudioLayout from "./layouts/StudioLayout";
-import StickyGlassMediaPlayer from "./components/player/StickyGlassMediaPlayer";
+import DeckPlayer from "./components/player/DeckPlayer";
 import { StudioGeneratePage } from "./components/studio/StudioGeneratePage";
 import { HistoryPage } from "./components/HistoryPage";
-import { MusicPlayer } from "./components/MusicPlayer";
 import { GenerationModal } from "./components/MusicGenerator/GenerationModal";
 import RefinementOverlay from "./components/studio/RefinementOverlay";
+import LandingPage from "./components/LandingPage";
 import { Toast } from "./components/ui/Toast";
 import type { ToastData } from "./components/ui/Toast";
 import type { MusicTrack, GenerationParameters, PostProcessingParameters } from "./components/MusicGenerator/types";
@@ -29,7 +29,7 @@ const base64ToBlob = (base64: string, mimeType: string): Blob => {
 // Initial Parameters
 const initialGenerationParams: GenerationParameters = {
   prompt: "",
-  duration: 10,
+  duration: 20,
 };
 
 const initialPostProcessingParams: PostProcessingParameters = {
@@ -46,7 +46,7 @@ const initialPostProcessingParams: PostProcessingParameters = {
 };
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<"generate" | "history">("generate");
+  const [currentPage, setCurrentPage] = useState<"landing" | "generate" | "history">("landing");
   const [isDark, setIsDark] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     const saved = localStorage.getItem("theme");
@@ -493,6 +493,10 @@ function App() {
     }
   }, [isDark]);
 
+  if (currentPage === "landing") {
+    return <LandingPage onEnterStudio={() => setCurrentPage("generate")} />;
+  }
+
   return (
     <>
       {/* Global API error toast */}
@@ -509,12 +513,14 @@ function App() {
         bottomSlot={
           currentMusic && showPlayer
             ? (
-              <StickyGlassMediaPlayer key="media-player" onClose={() => setShowPlayer(false)}>
-                <MusicPlayer
-                  track={currentMusic}
-                  onEdit={() => setShowEditPanel(true)}
-                />
-              </StickyGlassMediaPlayer>
+              <DeckPlayer
+                key="deck-player"
+                tracks={musicHistory}
+                currentTrack={currentMusic}
+                onSelectTrack={selectMusicFromHistory}
+                onClose={() => setShowPlayer(false)}
+                onEdit={() => setShowEditPanel(true)}
+              />
             )
             : undefined
         }

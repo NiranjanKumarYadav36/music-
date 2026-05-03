@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence, useTime, useTransform } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface GenerationModalProps {
   isOpen: boolean;
@@ -9,85 +9,15 @@ interface GenerationModalProps {
   onClose?: () => void;
 }
 
-/* ─── SVG liquid distortion filter ──────────────────────────────────────────
-   Creates the actual "wet glass" light-bending effect on the backdrop */
-const LiquidDistortionFilter = () => (
-  <svg className="absolute w-0 h-0" style={{ position: 'fixed' }}>
-    <defs>
-      <filter id="liquid-glass" x="-20%" y="-20%" width="140%" height="140%">
-        <feTurbulence
-          type="fractalNoise"
-          baseFrequency="0.012 0.018"
-          numOctaves="3"
-          seed="42"
-          result="noise"
-        >
-          <animate
-            attributeName="baseFrequency"
-            values="0.010 0.014;0.016 0.022;0.010 0.014"
-            dur="14s"
-            repeatCount="indefinite"
-          />
-          <animate
-            attributeName="seed"
-            values="42;67;42"
-            dur="20s"
-            repeatCount="indefinite"
-          />
-        </feTurbulence>
-        <feDisplacementMap
-          in="SourceGraphic"
-          in2="noise"
-          scale="22"
-          xChannelSelector="R"
-          yChannelSelector="G"
-          result="displaced"
-        />
-        <feGaussianBlur in="displaced" stdDeviation="0.6" result="blurred" />
-        <feComposite in="blurred" in2="SourceGraphic" operator="in" />
-      </filter>
-
-      {/* Glass sphere specular gradient */}
-      <radialGradient id="orb-glass" cx="38%" cy="30%" r="58%">
-        <stop offset="0%" stopColor="rgba(255,255,255,0.55)" />
-        <stop offset="30%" stopColor="rgba(255,255,255,0.08)" />
-        <stop offset="70%" stopColor="rgba(120,60,200,0.12)" />
-        <stop offset="100%" stopColor="rgba(0,0,0,0.3)" />
-      </radialGradient>
-
-      {/* Rim light on orb */}
-      <radialGradient id="orb-rim" cx="62%" cy="75%" r="60%">
-        <stop offset="0%" stopColor="rgba(34,211,238,0.35)" />
-        <stop offset="100%" stopColor="transparent" />
-      </radialGradient>
-
-      {/* Panel glass gradient */}
-      <linearGradient id="panel-glass" x1="0%" y1="0%" x2="60%" y2="100%">
-        <stop offset="0%" stopColor="rgba(255,255,255,0.13)" />
-        <stop offset="40%" stopColor="rgba(255,255,255,0.04)" />
-        <stop offset="100%" stopColor="rgba(255,255,255,0.06)" />
-      </linearGradient>
-
-      {/* Iridescent caustic gradient */}
-      <linearGradient id="caustic" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="rgba(168,85,247,0.0)" />
-        <stop offset="30%" stopColor="rgba(168,85,247,0.25)" />
-        <stop offset="60%" stopColor="rgba(34,211,238,0.20)" />
-        <stop offset="100%" stopColor="rgba(168,85,247,0.0)" />
-      </linearGradient>
-
-      <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#a855f7" />
-        <stop offset="50%" stopColor="#818cf8" />
-        <stop offset="100%" stopColor="#22d3ee" />
-      </linearGradient>
-      <filter id="ring-glow">
-        <feGaussianBlur stdDeviation="2.5" result="b" />
-        <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-      </filter>
-    </defs>
-  </svg>
-);
+/* ─── Phase info ─────────────────────────────────────────────────────────── */
+function phase(p: number) {
+  if (p < 8) return { n: '01', title: 'Initializing', sub: 'Preparing the generation pipeline' };
+  if (p < 25) return { n: '02', title: 'Analyzing Prompt', sub: 'Interpreting your creative direction' };
+  if (p < 55) return { n: '03', title: 'Generating Audio', sub: 'Composing in latent space' };
+  if (p < 75) return { n: '04', title: 'Rendering Waveform', sub: 'Converting tokens to audio signal' };
+  if (p < 90) return { n: '05', title: 'Processing', sub: 'Applying spatial encoding' };
+  return { n: '06', title: 'Finalizing', sub: 'Polishing the output' };
+}
 
 /* ─── Waveform ─────────────────────────────────────────────────────────────── */
 const Waveform: React.FC<{ progress: number }> = ({ progress }) => {
@@ -123,81 +53,53 @@ const Waveform: React.FC<{ progress: number }> = ({ progress }) => {
   );
 };
 
-/* ─── Progress ring ────────────────────────────────────────────────────────── */
-const ProgressRing: React.FC<{ progress: number }> = ({ progress }) => {
-  const r = 54;
-  const circ = 2 * Math.PI * r;
-  const fill = (progress / 100) * circ;
-  const angle = ((progress / 100) * 360 - 90) * (Math.PI / 180);
-  const lx = 64 + r * Math.cos(angle);
-  const ly = 64 + r * Math.sin(angle);
-
-  return (
-    <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 128 128">
-      {/* Track */}
-      <circle cx="64" cy="64" r={r} fill="none"
-        stroke="rgba(255,255,255,0.045)" strokeWidth="5.5" />
-      {/* Fill */}
-      <circle cx="64" cy="64" r={r} fill="none"
-        stroke="url(#ring-grad)" strokeWidth="5.5"
-        strokeLinecap="round"
-        strokeDasharray={`${fill} ${circ}`}
-        filter="url(#ring-glow)"
-        style={{ transition: 'stroke-dasharray 0.1s ease' }}
-      />
-      {/* Leading dot */}
-      {progress > 3 && (
-        <motion.circle
-          cx={lx} cy={ly} r={4}
-          fill="white"
-          filter="url(#ring-glow)"
-          animate={{ r: [3.5, 5, 3.5], opacity: [0.9, 1, 0.9] }}
-          transition={{ duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
-        />
-      )}
-    </svg>
-  );
-};
-
-/* ─── Floating caustic light patches ─────────────────────────────────────── */
-const Caustics: React.FC = () => (
-  <>
-    {[
-      { x: '15%', y: '18%', w: 180, h: 60, dur: 7, delay: 0 },
-      { x: '55%', y: '72%', w: 140, h: 45, dur: 9, delay: 2 },
-      { x: '70%', y: '25%', w: 100, h: 35, dur: 6, delay: 1 },
-    ].map((c, i) => (
-      <motion.div
-        key={i}
-        className="absolute rounded-full pointer-events-none"
-        style={{
-          left: c.x, top: c.y,
-          width: c.w, height: c.h,
-          background: 'url(#caustic)',
-          backgroundImage: 'linear-gradient(90deg,rgba(168,85,247,0),rgba(168,85,247,0.18),rgba(34,211,238,0.14),rgba(168,85,247,0))',
-          filter: 'blur(12px)',
-          transform: 'rotate(-20deg)',
-        }}
-        animate={{
-          opacity: [0, 0.7, 0],
-          scaleX: [0.8, 1.2, 0.8],
-          y: [0, -10, 0],
-        }}
-        transition={{ duration: c.dur, repeat: Infinity, delay: c.delay, ease: 'easeInOut' }}
-      />
-    ))}
-  </>
-);
-
-/* ─── Phase info ─────────────────────────────────────────────────────────── */
-function phase(p: number) {
-  if (p < 8) return { n: '01', title: 'Igniting Engine', sub: 'Warming up the neural synthesizer' };
-  if (p < 25) return { n: '02', title: 'Parsing Intent', sub: 'Decoding your creative prompt' };
-  if (p < 55) return { n: '03', title: 'Neural Synthesis', sub: 'Composing tokens in latent space' };
-  if (p < 75) return { n: '04', title: 'Signal Rendering', sub: 'Translating tokens to waveform' };
-  if (p < 90) return { n: '05', title: 'Spatial Encoding', sub: 'Shaping the stereo soundscape' };
-  return { n: '06', title: 'Finishing Masterpiece', sub: 'Polishing the final output' };
-}
+/* ─── Inline styles for gooey loader ────────────────────────────────────── */
+const loaderStyles = `
+  @keyframes gm-rotate {
+    0% { transform: rotate(0deg); }
+    50% { transform: rotate(180deg); }
+    100% { transform: rotate(360deg); }
+  }
+  @keyframes gm-dot-3-move {
+    20% { transform: scale(1); }
+    45% { transform: translateY(-18px) scale(0.45); }
+    60% { transform: translateY(-90px) scale(0.45); }
+    80% { transform: translateY(-90px) scale(0.45); }
+    100% { transform: translateY(0px) scale(1); }
+  }
+  @keyframes gm-dot-2-move {
+    20% { transform: scale(1); }
+    45% { transform: translate(-16px, 12px) scale(0.45); }
+    60% { transform: translate(-80px, 60px) scale(0.45); }
+    80% { transform: translate(-80px, 60px) scale(0.45); }
+    100% { transform: translateY(0px) scale(1); }
+  }
+  @keyframes gm-dot-1-move {
+    20% { transform: scale(1); }
+    45% { transform: translate(16px, 12px) scale(0.45); }
+    60% { transform: translate(80px, 60px) scale(0.45); }
+    80% { transform: translate(80px, 60px) scale(0.45); }
+    100% { transform: translateY(0px) scale(1); }
+  }
+  @keyframes gm-rotate-move {
+    55% { transform: rotate(0deg); }
+    80% { transform: rotate(360deg); }
+    100% { transform: rotate(360deg); }
+  }
+  @keyframes gm-index {
+    0%, 100% { z-index: 3; }
+    33.3% { z-index: 2; }
+    66.6% { z-index: 1; }
+  }
+  @keyframes gm-outer-rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  @keyframes gm-pulse-glow {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 0.9; transform: scale(1.1); }
+  }
+`;
 
 /* ─── Main component ─────────────────────────────────────────────────────── */
 export const GenerationModal: React.FC<GenerationModalProps> = ({
@@ -212,10 +114,6 @@ export const GenerationModal: React.FC<GenerationModalProps> = ({
   const raf = useRef<number | null>(null);
   const last = useRef(0);
   const lastP = useRef(0);
-
-  /* Rotating iridescent hue for the orb border */
-  const time = useTime();
-  const hue = useTransform(time, t => `hsl(${(t * 0.04) % 360}, 70%, 65%)`);
 
   useEffect(() => { setMounted(true); return () => setMounted(false); }, []);
 
@@ -254,8 +152,19 @@ export const GenerationModal: React.FC<GenerationModalProps> = ({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* SVG filter defs — rendered once */}
-          <LiquidDistortionFilter />
+          {/* Injected keyframes */}
+          <style>{loaderStyles}</style>
+
+          {/* SVG filter for gooey dots */}
+          <svg style={{ position: 'fixed', width: 0, height: 0 }}>
+            <defs>
+              <filter id="gm-goo">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -8" result="goo" />
+                <feBlend in="SourceGraphic" in2="goo" />
+              </filter>
+            </defs>
+          </svg>
 
           {/* ── Backdrop ── */}
           <motion.div
@@ -263,12 +172,12 @@ export const GenerationModal: React.FC<GenerationModalProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.4 }}
             className="fixed inset-0 z-[9990]"
             style={{
-              backdropFilter: 'blur(36px) saturate(140%) brightness(0.7)',
-              WebkitBackdropFilter: 'blur(36px) saturate(140%) brightness(0.7)',
-              background: 'radial-gradient(ellipse at 50% 20%, rgba(100,40,180,0.22) 0%, rgba(4,3,10,0.78) 70%)',
+              backdropFilter: 'blur(36px) saturate(140%) brightness(0.6)',
+              WebkitBackdropFilter: 'blur(36px) saturate(140%) brightness(0.6)',
+              background: 'radial-gradient(ellipse at 50% 30%, rgba(80,30,150,0.25) 0%, rgba(4,3,10,0.85) 70%)',
             }}
             onClick={onClose}
           />
@@ -285,11 +194,6 @@ export const GenerationModal: React.FC<GenerationModalProps> = ({
               animate={{ scale: [1, 1.28, 1], opacity: [0.45, 0.85, 0.45] }}
               transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
             />
-            <motion.div className="absolute top-1/3 -left-32 w-[400px] h-[400px] rounded-full"
-              style={{ background: 'radial-gradient(circle, rgba(129,140,248,0.10) 0%, transparent 65%)' }}
-              animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.7, 0.4] }}
-              transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-            />
           </div>
 
           {/* ── Modal ── */}
@@ -302,13 +206,13 @@ export const GenerationModal: React.FC<GenerationModalProps> = ({
             transition={{ type: 'spring', damping: 24, stiffness: 240 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="pointer-events-auto w-full max-w-[400px] relative">
+            <div className="pointer-events-auto w-full max-w-[420px] relative">
 
-              {/* ── Outermost glow ring (iridescent, rotating hue) ── */}
+              {/* ── Outermost glow ring ── */}
               <motion.div
                 className="absolute -inset-[2px] rounded-[46px] pointer-events-none"
                 style={{
-                  background: 'linear-gradient(135deg,rgba(168,85,247,0.6),rgba(34,211,238,0.4),rgba(129,140,248,0.5),rgba(168,85,247,0.6))',
+                  background: 'linear-gradient(135deg,rgba(168,85,247,0.5),rgba(34,211,238,0.35),rgba(129,140,248,0.4),rgba(168,85,247,0.5))',
                   filter: 'blur(2px)',
                   backgroundSize: '300% 300%',
                 }}
@@ -316,47 +220,35 @@ export const GenerationModal: React.FC<GenerationModalProps> = ({
                 transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
               />
 
-              {/* ── Outer frosted rim ── */}
-              <div
-                className="absolute -inset-[1px] rounded-[45px]"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0.10) 100%)',
-                }}
-              />
-
               {/* ── Main glass card ── */}
               <div
                 className="relative overflow-hidden rounded-[44px]"
                 style={{
-                  background: 'linear-gradient(155deg, rgba(255,255,255,0.095) 0%, rgba(255,255,255,0.028) 45%, rgba(255,255,255,0.055) 100%)',
+                  background: 'linear-gradient(155deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 45%, rgba(255,255,255,0.045) 100%)',
                   backdropFilter: 'blur(60px) saturate(180%) brightness(1.05)',
                   WebkitBackdropFilter: 'blur(60px) saturate(180%) brightness(1.05)',
-                  border: '1px solid rgba(255,255,255,0.12)',
+                  border: '1px solid rgba(255,255,255,0.10)',
                   boxShadow: [
-                    'inset 0 1px 0 rgba(255,255,255,0.22)',     // top highlight
-                    'inset 0 -1px 0 rgba(255,255,255,0.06)',    // bottom edge
-                    'inset 1px 0 0 rgba(255,255,255,0.10)',     // left edge
-                    '0 40px 100px rgba(0,0,0,0.70)',            // drop shadow
-                    '0 0 0 1px rgba(168,85,247,0.08)',          // subtle purple ring
+                    'inset 0 1px 0 rgba(255,255,255,0.18)',
+                    'inset 0 -1px 0 rgba(255,255,255,0.04)',
+                    '0 40px 100px rgba(0,0,0,0.75)',
+                    '0 0 0 1px rgba(168,85,247,0.06)',
                   ].join(', '),
                 }}
               >
-                {/* ── Glass surface reflection (top-left specular) ── */}
+                {/* Glass surface reflection */}
                 <div
-                  className="absolute top-0 left-0 w-[70%] h-[35%] rounded-tl-[44px] pointer-events-none"
+                  className="absolute top-0 left-0 w-[65%] h-[30%] rounded-tl-[44px] pointer-events-none"
                   style={{
-                    background: 'radial-gradient(ellipse at 25% 20%, rgba(255,255,255,0.14), transparent 65%)',
+                    background: 'radial-gradient(ellipse at 25% 20%, rgba(255,255,255,0.10), transparent 65%)',
                   }}
                 />
 
-                {/* ── Caustic light patches ── */}
-                <Caustics />
-
-                {/* ── Animating micro-particle field ── */}
-                {Array.from({ length: 18 }).map((_, i) => {
-                  const px = 8 + (i * 71 + 13) % 84;
-                  const py = 5 + (i * 53 + 7) % 88;
-                  const sz = 1 + (i % 3) * 0.7;
+                {/* Floating particles */}
+                {Array.from({ length: 12 }).map((_, i) => {
+                  const px = 10 + (i * 71 + 13) % 80;
+                  const py = 8 + (i * 53 + 7) % 84;
+                  const sz = 1 + (i % 3) * 0.6;
                   const h = 260 + (i * 23) % 80;
                   return (
                     <motion.div key={i} className="absolute rounded-full pointer-events-none"
@@ -366,14 +258,14 @@ export const GenerationModal: React.FC<GenerationModalProps> = ({
                         background: `hsl(${h},80%,72%)`,
                         boxShadow: `0 0 ${sz * 4}px hsl(${h},80%,72%)`,
                       }}
-                      animate={{ opacity: [0, 0.9, 0], scale: [0.4, 1.6, 0.4], y: [0, -16, 0] }}
-                      transition={{ duration: 3.5 + (i % 4) * 1.2, repeat: Infinity, delay: i * 0.28, ease: 'easeInOut' }}
+                      animate={{ opacity: [0, 0.8, 0], scale: [0.4, 1.5, 0.4], y: [0, -14, 0] }}
+                      transition={{ duration: 3.5 + (i % 4) * 1.2, repeat: Infinity, delay: i * 0.3, ease: 'easeInOut' }}
                     />
                   );
                 })}
 
                 {/* ── Content ── */}
-                <div className="relative z-10 px-9 pt-9 pb-8 flex flex-col items-center gap-6">
+                <div className="relative z-10 px-9 pt-9 pb-8 flex flex-col items-center gap-5">
 
                   {/* Phase badge row */}
                   <div className="flex w-full items-center justify-between">
@@ -383,88 +275,113 @@ export const GenerationModal: React.FC<GenerationModalProps> = ({
                         animate={{ opacity: [1, 0.2, 1], scale: [1, 1.5, 1] }}
                         transition={{ duration: 1.5, repeat: Infinity }}
                       />
-                      <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/25 select-none">
-                        Neural Synthesis
+                      <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/20 select-none">
+                        Generating
                       </span>
                     </div>
-                    <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/15 select-none">
+                    <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/15 select-none">
                       {ph.n} / 06
                     </span>
                   </div>
 
-                  {/* ── Orb system ── */}
-                  <div className="relative w-[152px] h-[152px]">
-                    {/* Outer halo rings */}
+                  {/* ── Central loader — Fused orb + gooey dots ── */}
+                  <div className="relative flex items-center justify-center" style={{ width: 200, height: 200 }}>
+
+                    {/* Rotating outer shadow ring (Ratinax style) */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        width: 180,
+                        height: 180,
+                        borderRadius: '50%',
+                        animation: 'gm-outer-rotate 3s linear infinite',
+                        boxShadow: [
+                          '0.5em 0.5em 3em rgba(139,92,246,0.6)',
+                          '-0.5em 0.5em 3em rgba(99,102,241,0.5)',
+                          '0.5em -0.5em 3em rgba(168,85,247,0.5)',
+                          '-0.5em -0.5em 3em rgba(34,211,238,0.4)',
+                        ].join(', '),
+                      }}
+                    />
+
+                    {/* Pulsing glow halo */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        width: 160,
+                        height: 160,
+                        borderRadius: '50%',
+                        background: 'radial-gradient(circle, rgba(139,92,246,0.25) 0%, transparent 70%)',
+                        animation: 'gm-pulse-glow 2.5s ease-in-out infinite',
+                      }}
+                    />
+
+                    {/* Gooey dots container (Sourcesketch style) */}
+                    <div
+                      style={{
+                        width: 140,
+                        height: 140,
+                        position: 'relative',
+                        filter: 'url(#gm-goo)',
+                        animation: 'gm-rotate-move 2s ease-in-out infinite',
+                      }}
+                    >
+                      {/* Dot 3 — violet */}
+                      <div style={{
+                        width: 50, height: 50, borderRadius: '50%',
+                        backgroundColor: '#8b5cf6',
+                        position: 'absolute',
+                        top: 0, bottom: 0, left: 0, right: 0,
+                        margin: 'auto',
+                        animation: 'gm-dot-3-move 2s ease infinite, gm-index 6s ease infinite',
+                        boxShadow: '0 0 20px rgba(139,92,246,0.6)',
+                      }} />
+                      {/* Dot 2 — indigo/blue */}
+                      <div style={{
+                        width: 50, height: 50, borderRadius: '50%',
+                        backgroundColor: '#6366f1',
+                        position: 'absolute',
+                        top: 0, bottom: 0, left: 0, right: 0,
+                        margin: 'auto',
+                        animation: 'gm-dot-2-move 2s ease infinite, gm-index 6s -4s ease infinite',
+                        boxShadow: '0 0 20px rgba(99,102,241,0.6)',
+                      }} />
+                      {/* Dot 1 — cyan */}
+                      <div style={{
+                        width: 50, height: 50, borderRadius: '50%',
+                        backgroundColor: '#22d3ee',
+                        position: 'absolute',
+                        top: 0, bottom: 0, left: 0, right: 0,
+                        margin: 'auto',
+                        animation: 'gm-dot-1-move 2s ease infinite, gm-index 6s -2s ease infinite',
+                        boxShadow: '0 0 20px rgba(34,211,238,0.6)',
+                      }} />
+                    </div>
+
+                    {/* Percentage readout overlay */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
+                      <motion.span
+                        key={pct}
+                        initial={{ opacity: 0, scale: 0.7 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ type: 'spring', damping: 16, stiffness: 320 }}
+                        className="text-[32px] font-bold tabular-nums text-white leading-none"
+                        style={{ textShadow: '0 0 24px rgba(200,180,255,0.7), 0 0 60px rgba(139,92,246,0.4)' }}
+                      >
+                        {pct}
+                      </motion.span>
+                      <span
+                        className="text-[9px] font-semibold uppercase tracking-[0.25em] text-white/35 mt-1"
+                      >%</span>
+                    </div>
+
+                    {/* Outer dashed orbit ring */}
                     <motion.div
-                      className="absolute -inset-2 rounded-full border border-dashed border-white/[0.07]"
+                      className="absolute rounded-full border border-dashed border-white/[0.06] pointer-events-none"
+                      style={{ width: 194, height: 194 }}
                       animate={{ rotate: 360 }}
                       transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
                     />
-                    <motion.div
-                      className="absolute -inset-6 rounded-full border border-dotted border-white/[0.035]"
-                      animate={{ rotate: -360 }}
-                      transition={{ duration: 34, repeat: Infinity, ease: 'linear' }}
-                    />
-
-                    {/* Orb glow aura */}
-                    <motion.div
-                      className="absolute inset-1 rounded-full blur-xl"
-                      style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.28), transparent 70%)' }}
-                      animate={{ scale: [1, 1.25, 1], opacity: [0.6, 1, 0.6] }}
-                      transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                    />
-
-                    {/* progress ring */}
-                    <ProgressRing progress={dp} />
-
-                    {/* ── Glass sphere orb ── */}
-                    <div
-                      className="absolute inset-5 rounded-full overflow-hidden"
-                      style={{
-                        background: 'radial-gradient(circle at 38% 28%, rgba(200,180,255,0.22) 0%, rgba(80,40,140,0.28) 45%, rgba(10,6,22,0.55) 100%)',
-                        backdropFilter: 'blur(18px)',
-                        border: '1px solid rgba(255,255,255,0.14)',
-                        boxShadow: [
-                          'inset 0 2px 0 rgba(255,255,255,0.28)',
-                          'inset 0 -2px 0 rgba(34,211,238,0.15)',
-                          'inset 2px 0 0 rgba(255,255,255,0.08)',
-                          '0 0 30px rgba(168,85,247,0.22)',
-                        ].join(', '),
-                      }}
-                    >
-                      {/* Specular highlight blob */}
-                      <div
-                        className="absolute top-[10%] left-[16%] w-[45%] h-[30%] rounded-full"
-                        style={{
-                          background: 'radial-gradient(ellipse, rgba(255,255,255,0.55), transparent 70%)',
-                          filter: 'blur(4px)',
-                          transform: 'rotate(-20deg)',
-                        }}
-                      />
-                      {/* Rim light (bottom-right) */}
-                      <div
-                        className="absolute bottom-[8%] right-[10%] w-[40%] h-[25%] rounded-full"
-                        style={{
-                          background: 'radial-gradient(ellipse, rgba(34,211,238,0.35), transparent 70%)',
-                          filter: 'blur(5px)',
-                        }}
-                      />
-
-                      {/* Center value */}
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <motion.span
-                          key={pct}
-                          initial={{ opacity: 0, scale: 0.7 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ type: 'spring', damping: 16, stiffness: 320 }}
-                          className="text-[30px] font-black tabular-nums text-white leading-none"
-                          style={{ textShadow: '0 0 24px rgba(220,190,255,0.9), 0 2px 6px rgba(0,0,0,0.5)' }}
-                        >
-                          {pct}
-                        </motion.span>
-                        <span className="text-[8px] font-black uppercase tracking-[0.22em] text-white/35 mt-0.5">%</span>
-                      </div>
-                    </div>
                   </div>
 
                   {/* Phase label */}
@@ -477,13 +394,10 @@ export const GenerationModal: React.FC<GenerationModalProps> = ({
                       transition={{ duration: 0.35, ease: 'easeOut' }}
                       className="text-center space-y-1"
                     >
-                      <h2
-                        className="text-[18px] font-bold text-white tracking-tight"
-                        style={{ textShadow: '0 0 30px rgba(168,85,247,0.4)' }}
-                      >
+                      <h2 className="text-base font-semibold text-white tracking-tight">
                         {ph.title}
                       </h2>
-                      <p className="text-[11.5px] text-white/35 font-medium">
+                      <p className="text-[11px] text-white/30 font-medium">
                         {ph.sub}
                       </p>
                     </motion.div>
@@ -501,27 +415,24 @@ export const GenerationModal: React.FC<GenerationModalProps> = ({
                         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
                       }}
                     >
-                      {/* Filled portion */}
                       <div
                         className="absolute inset-y-0 left-0 rounded-full"
                         style={{
                           width: `${dp}%`,
-                          background: 'linear-gradient(90deg, #a855f7, #818cf8, #22d3ee)',
-                          boxShadow: '0 0 16px rgba(168,85,247,0.75)',
+                          background: 'linear-gradient(90deg, #8b5cf6, #6366f1, #22d3ee)',
+                          boxShadow: '0 0 16px rgba(139,92,246,0.75)',
                           transition: 'width 0.1s ease',
                         }}
                       />
-                      {/* Shimmer sweep */}
                       <motion.div
                         className="absolute inset-y-0 w-20 rounded-full"
                         style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent)' }}
                         animate={{ x: ['-80px', '500px'] }}
                         transition={{ duration: 1.9, repeat: Infinity, ease: 'linear' }}
                       />
-                      {/* Track top shine */}
                       <div
                         className="absolute inset-x-0 top-0 h-px rounded-full"
-                        style={{ background: 'rgba(255,255,255,0.18)' }}
+                        style={{ background: 'rgba(255,255,255,0.15)' }}
                       />
                     </div>
 
@@ -531,7 +442,7 @@ export const GenerationModal: React.FC<GenerationModalProps> = ({
                         animate={{ opacity: [1, 0.15, 1], scale: [1, 1.8, 1] }}
                         transition={{ duration: 1.3, repeat: Infinity }}
                       />
-                      <span className="text-[10px] uppercase tracking-[0.28em] font-bold text-white/20 select-none">
+                      <span className="text-[10px] uppercase tracking-[0.2em] font-medium text-white/20 select-none">
                         {(status && status !== 'Initializing generator...' && status !== 'Initializing…')
                           ? status : 'Synthesizing audio…'}
                       </span>
@@ -544,12 +455,12 @@ export const GenerationModal: React.FC<GenerationModalProps> = ({
 
                 </div>
 
-                {/* ── Bottom glass edge reflection ── */}
+                {/* Bottom glass edge */}
                 <div
                   className="absolute bottom-0 inset-x-0 h-[40%] rounded-b-[44px] pointer-events-none"
                   style={{
-                    background: 'linear-gradient(to top, rgba(255,255,255,0.025), transparent)',
-                    borderTop: '1px solid rgba(255,255,255,0.04)',
+                    background: 'linear-gradient(to top, rgba(255,255,255,0.02), transparent)',
+                    borderTop: '1px solid rgba(255,255,255,0.03)',
                   }}
                 />
               </div>

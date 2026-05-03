@@ -17,8 +17,8 @@ const StudioLayout: React.FC<StudioLayoutProps> = ({
     bottomSlot,
 }) => {
     return (
-        <div className="relative min-h-screen overflow-hidden bg-[var(--bg-main)] text-[var(--text-main)]">
-            <AmbientGradientBackground />
+        <div className="relative min-h-screen overflow-hidden bg-[#050505] text-white selection:bg-violet-500 selection:text-white">
+            <AmbientGradientBackground activeTab={activeTab} />
 
             <div className="relative z-10 flex flex-col min-h-screen">
                 <LiquidGlassTopNav
@@ -26,7 +26,7 @@ const StudioLayout: React.FC<StudioLayoutProps> = ({
                     onTabChange={onTabChange}
                 />
 
-                <main className="flex-1 px-6 md:px-12 pt-24 pb-32">
+                <main className={`flex-1 px-6 md:px-12 pt-24 ${bottomSlot ? 'pb-[28rem]' : 'pb-12'}`}>
                     {children}
                 </main>
 

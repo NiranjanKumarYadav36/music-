@@ -1,0 +1,136 @@
+.gooey-gradient-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+
+  --color-bg1: rgb(8, 2, 18) !important;
+  --color-bg2: rgb(5, 5, 5) !important;
+  --color1: 139, 92, 246;
+  --color2: 109, 40, 217;
+  --color3: 56, 189, 248;
+  --color4: 88, 28, 135;
+  --color5: 124, 58, 237;
+  --color-interactive: 139, 92, 246;
+  --circle-size: 80%;
+  --blending: hard-light;
+}
+
+@keyframes gooeyMoveInCircle {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(180deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes gooeyMoveVertical {
+  0% { transform: translateY(-50%); }
+  50% { transform: translateY(50%); }
+  100% { transform: translateY(-50%); }
+}
+
+@keyframes gooeyMoveHorizontal {
+  0% { transform: translateX(-50%) translateY(-10%); }
+  50% { transform: translateX(50%) translateY(10%); }
+  100% { transform: translateX(-50%) translateY(-10%); }
+}
+
+.gooey-gradient-bg {
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute !important;
+  overflow: hidden !important;
+  background: linear-gradient(40deg, var(--color-bg1), var(--color-bg2)) !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 0 !important;
+}
+
+.gooey-gradient-bg svg {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.gooey-gradients-container {
+  filter: url(#goo) blur(40px);
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.gooey-g1 {
+  position: absolute !important;
+  background: radial-gradient(circle at center, rgba(var(--color1), 0.8) 0, rgba(var(--color1), 0) 50%) no-repeat !important;
+  mix-blend-mode: var(--blending) !important;
+  width: var(--circle-size) !important;
+  height: var(--circle-size) !important;
+  top: calc(50% - var(--circle-size) / 2) !important;
+  left: calc(50% - var(--circle-size) / 2) !important;
+  transform-origin: center center !important;
+  animation: gooeyMoveVertical 30s ease infinite !important;
+  opacity: 1 !important;
+}
+
+.gooey-g2 {
+  position: absolute !important;
+  background: radial-gradient(circle at center, rgba(var(--color2), 0.8) 0, rgba(var(--color2), 0) 50%) no-repeat !important;
+  mix-blend-mode: var(--blending) !important;
+  width: var(--circle-size) !important;
+  height: var(--circle-size) !important;
+  top: calc(50% - var(--circle-size) / 2) !important;
+  left: calc(50% - var(--circle-size) / 2) !important;
+  transform-origin: calc(50% - 400px) !important;
+  animation: gooeyMoveInCircle 20s reverse infinite !important;
+  opacity: 1 !important;
+}
+
+.gooey-g3 {
+  position: absolute !important;
+  background: radial-gradient(circle at center, rgba(var(--color3), 0.6) 0, rgba(var(--color3), 0) 50%) no-repeat !important;
+  mix-blend-mode: var(--blending) !important;
+  width: var(--circle-size) !important;
+  height: var(--circle-size) !important;
+  top: calc(50% - var(--circle-size) / 2 + 200px) !important;
+  left: calc(50% - var(--circle-size) / 2 - 500px) !important;
+  transform-origin: calc(50% + 400px) !important;
+  animation: gooeyMoveInCircle 40s linear infinite !important;
+  opacity: 0.7 !important;
+}
+
+.gooey-g4 {
+  position: absolute !important;
+  background: radial-gradient(circle at center, rgba(var(--color4), 0.8) 0, rgba(var(--color4), 0) 50%) no-repeat !important;
+  mix-blend-mode: var(--blending) !important;
+  width: var(--circle-size) !important;
+  height: var(--circle-size) !important;
+  top: calc(50% - var(--circle-size) / 2) !important;
+  left: calc(50% - var(--circle-size) / 2) !important;
+  transform-origin: calc(50% - 200px) !important;
+  animation: gooeyMoveHorizontal 40s ease infinite !important;
+  opacity: 0.6 !important;
+}
+
+.gooey-g5 {
+  position: absolute !important;
+  background: radial-gradient(circle at center, rgba(var(--color5), 0.8) 0, rgba(var(--color5), 0) 50%) no-repeat !important;
+  mix-blend-mode: var(--blending) !important;
+  width: calc(var(--circle-size) * 2) !important;
+  height: calc(var(--circle-size) * 2) !important;
+  top: calc(50% - var(--circle-size)) !important;
+  left: calc(50% - var(--circle-size)) !important;
+  transform-origin: calc(50% - 800px) calc(50% + 200px) !important;
+  animation: gooeyMoveInCircle 20s ease infinite !important;
+  opacity: 0.8 !important;
+}
+
+.gooey-interactive {
+  position: absolute !important;
+  background: radial-gradient(circle at center, rgba(var(--color-interactive), 0.8) 0, rgba(var(--color-interactive), 0) 50%) no-repeat !important;
+  mix-blend-mode: var(--blending) !important;
+  width: 100% !important;
+  height: 100% !important;
+  top: -50% !important;
+  left: -50% !important;
+  opacity: 0.7 !important;
+}

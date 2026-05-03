@@ -1,4 +1,5 @@
 import React from "react";
+import { motion } from "framer-motion";
 import { StudioPromptCenter } from "./StudioPromptCenter";
 import { StudioLeftPanel, StudioRightPanel } from "./StudioSidePanels";
 import RecentGeneratedMelodies from "./RecentGeneratedMelodies";
@@ -41,60 +42,57 @@ interface StudioGeneratePageProps {
     onPlay: (track: MusicTrack) => void;
 }
 
+const bounceUp = {
+    initial: { opacity: 0, y: 40, scale: 0.97 },
+    animate: { opacity: 1, y: 0, scale: 1 },
+    transition: { type: "spring", stiffness: 300, damping: 22, mass: 0.8 },
+};
+
+const staggerContainer = {
+    animate: { transition: { staggerChildren: 0.08 } },
+};
+
 export const StudioGeneratePage: React.FC<StudioGeneratePageProps> = (props) => {
     return (
-        <div className="w-full flex flex-col items-center gap-12 py-8 px-2 h-full">
-
+        <motion.div
+            className="w-full flex flex-col items-center gap-10 py-6 px-2 h-full overflow-x-hidden"
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+        >
             {/* ── Hero Header (hidden once a track exists) ── */}
             {!props.currentMusic && (
-                <div className="text-center space-y-5 max-w-2xl animate-in fade-in zoom-in-95 duration-1000">
+                <motion.div
+                    className="text-center space-y-5 max-w-3xl"
+                    {...bounceUp}
+                >
 
-                    {/* Badge */}
-                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.07] backdrop-blur-sm shadow-xl">
-                        <span className="text-base leading-none">🔥</span>
-                        <span className="text-[10px] font-black uppercase tracking-[0.38em] text-zinc-400">
-                            Banger Engine, No Cap
-                        </span>
-                    </div>
-
-                    {/* Main title */}
-                    <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.88] text-white font-[Outfit]"
-                        style={{ textShadow: '0 0 60px rgba(168,85,247,0.25)' }}>
-                        COOK UP A{" "}
-                        <span
-                            className="bg-clip-text text-transparent"
-                            style={{
-                                backgroundImage: 'linear-gradient(135deg, #a855f7, #818cf8, #22d3ee, #a855f7)',
-                                backgroundSize: '250% 100%',
-                                animation: 'titleShift 4s ease-in-out infinite',
-                                filter: 'drop-shadow(0 0 20px rgba(168,85,247,0.6))',
-                            }}
-                        >
-                            BANGER.
-                        </span>
+                    {/* Main title — serif, landing-page style */}
+                    <h1
+                        className="text-4xl md:text-6xl font-medium tracking-tight leading-[1.1] text-[#ffe0e0] font-serif mix-blend-normal"
+                        style={{ textShadow: "0 0 40px rgba(139,92,246,0.25)" }}
+                    >
+                        Create Your{" "}
+                        <span className="italic font-light">Sound</span>
                     </h1>
 
                     {/* Subtitle */}
-                    <p className="text-zinc-500 text-sm md:text-base font-normal max-w-sm mx-auto leading-relaxed">
-                        type a <span className="text-zinc-300 font-medium">vibe</span> →
-                        we make it <span className="text-zinc-300 font-medium">hit</span>.
-                        no music degree needed fr.
+                    <p className="text-gray-500 text-base md:text-lg font-light max-w-lg mx-auto leading-relaxed">
+                        Describe any musical concept and watch it come to life.
                     </p>
-
-                    <style>{`
-                      @keyframes titleShift {
-                        0%,100% { background-position: 0% 50%; }
-                        50%      { background-position: 100% 50%; }
-                      }
-                    `}</style>
-                </div>
+                </motion.div>
             )}
 
             {/* ── 3-Column Symmetric Layout ── */}
-            <div className="w-full flex flex-col lg:flex-row items-start justify-center gap-6 xl:gap-8">
+            <div className="w-full max-w-full flex flex-col lg:flex-row items-start justify-center gap-4 xl:gap-6 px-2">
 
                 {/* Left Panel */}
-                <div className="hidden lg:flex animate-in slide-in-from-left-8 duration-700">
+                <motion.div
+                    className="hidden lg:flex"
+                    initial={{ opacity: 0, x: -30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ type: "spring", stiffness: 250, damping: 22, delay: 0.1 }}
+                >
                     <StudioLeftPanel
                         duration={props.duration}
                         onDurationChange={props.onDurationChange}
@@ -103,20 +101,31 @@ export const StudioGeneratePage: React.FC<StudioGeneratePageProps> = (props) => 
                         cfgCoef={props.cfgCoef}
                         onCfgCoefChange={props.onCfgCoefChange}
                     />
-                </div>
+                </motion.div>
 
                 {/* Center: Prompt + Chips + Generate */}
-                <StudioPromptCenter
-                    prompt={props.prompt}
-                    onPromptChange={props.onPromptChange}
-                    onGenerate={props.onGenerate}
-                    isLoading={props.isLoading}
-                    currentMusic={props.currentMusic}
-                    className="animate-in slide-in-from-bottom-6 duration-700"
-                />
+                <motion.div
+                    className="min-w-0 flex-1"
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ type: "spring", stiffness: 250, damping: 22, delay: 0.15 }}
+                >
+                    <StudioPromptCenter
+                        prompt={props.prompt}
+                        onPromptChange={props.onPromptChange}
+                        onGenerate={props.onGenerate}
+                        isLoading={props.isLoading}
+                        currentMusic={props.currentMusic}
+                    />
+                </motion.div>
 
                 {/* Right Panel */}
-                <div className="hidden lg:flex animate-in slide-in-from-right-8 duration-700">
+                <motion.div
+                    className="hidden lg:flex"
+                    initial={{ opacity: 0, x: 30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ type: "spring", stiffness: 250, damping: 22, delay: 0.1 }}
+                >
                     <StudioRightPanel
                         topK={props.topK}
                         onTopKChange={props.onTopKChange}
@@ -125,11 +134,16 @@ export const StudioGeneratePage: React.FC<StudioGeneratePageProps> = (props) => 
                         useSampling={props.useSampling}
                         onUseSamplingChange={props.onUseSamplingChange}
                     />
-                </div>
+                </motion.div>
             </div>
 
             {/* Mobile: Collapsible parameter row (shown below prompt on small screens) */}
-            <div className="lg:hidden w-full grid grid-cols-2 gap-4 animate-in fade-in duration-500">
+            <motion.div
+                className="lg:hidden w-full grid grid-cols-2 gap-4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: "spring", stiffness: 250, damping: 22, delay: 0.2 }}
+            >
                 <StudioLeftPanel
                     duration={props.duration}
                     onDurationChange={props.onDurationChange}
@@ -146,7 +160,7 @@ export const StudioGeneratePage: React.FC<StudioGeneratePageProps> = (props) => 
                     useSampling={props.useSampling}
                     onUseSamplingChange={props.onUseSamplingChange}
                 />
-            </div>
+            </motion.div>
 
             {/* ── Recent Generations ── */}
             <RecentGeneratedMelodies
@@ -157,6 +171,6 @@ export const StudioGeneratePage: React.FC<StudioGeneratePageProps> = (props) => 
                     if (track) props.onPlay(track);
                 }}
             />
-        </div>
+        </motion.div>
     );
 };

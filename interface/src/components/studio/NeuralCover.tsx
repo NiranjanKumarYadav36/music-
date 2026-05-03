@@ -36,8 +36,8 @@ export const NeuralCover: React.FC<NeuralCoverProps> = ({ prompt, className = ''
 
             {showTitle && (
                 <div className="absolute inset-x-0 bottom-3 flex items-center justify-center z-30">
-                    <div className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/20 shadow-sm text-center">
-                        <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/80 line-clamp-1 max-w-[120px]">
+                    <div className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-lg border border-white/[0.1] text-center">
+                        <p className="text-[8px] font-medium uppercase tracking-wider text-white/70 line-clamp-1 max-w-[120px]">
                             {prompt}
                         </p>
                     </div>
